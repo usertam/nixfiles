@@ -16,7 +16,6 @@ jobs:
     - name: Build config.system.build.azureImage
       run: |
         nix build .#nixosConfigurations.base.config.system.build.azureImage
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
         path: result/*

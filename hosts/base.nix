@@ -12,9 +12,6 @@
   # Backport: Mount tmpfs on /tmp during boot.
   boot.tmp.useTmpfs = true;
 
-  # Disable mounting metadata disk.
-  fileSystems."/metadata".device = lib.mkForce "/dev/null";
-
   # TCP connections will timeout after 4 minutes on Azure.
   boot.kernel.sysctl."net.ipv4.tcp_keepalive_time" = 120;
   boot.kernel.sysctl."net.ipv4.tcp_keepalive_intvl" = 30;
