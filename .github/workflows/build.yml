@@ -7,15 +7,26 @@ on:
 jobs:
   build:
     name: Build Image
+    strategy:
+      matrix:
+        include:
+        - config: x86_64-base
+        - config: aarch64-base
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Install qemu and binfmt
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y binfmt-support qemu-user-static
     - uses: cachix/install-nix-action@v24
       with:
         nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-    - name: Build config.system.build.azureImage
+        extra_nix_config: extra-platforms = x86_64-linux aarch64-linux
+    - name: Build ${{matrix.config}}.config.system.build.azureImage
       run: |
-        nix build .#nixosConfigurations.base.config.system.build.azureImage
+        nix build .#nixosConfigurations.${{matrix.config}}.config.system.build.azureImage
     - uses: actions/upload-artifact@v4
       with:
         path: result/*
