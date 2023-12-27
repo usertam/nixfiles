@@ -1,7 +1,41 @@
-{ lib, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
+
+# Dirty mkForce hacks here to substitute https://github.com/NixOS/nixpkgs/pull/236110.
+with pkgs.stdenv.hostPlatform;
 
 {
   imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
+
+  # Bypass isx86 assertion in nixos/modules/virtualisation/azure-agent.nix.
+  assertions = lib.mkIf (!isx86) (lib.mkForce []);
+
+  # Generate a GRUB menu ONLY when booting in BIOS.
+  boot.loader.grub.device = lib.mkIf (!isx86) (lib.mkForce "nodev");
+
+  # Enable GRUB EFI support if needed.
+  boot.loader.grub.efiSupport = lib.mkIf (!isx86) true;
+  boot.loader.grub.efiInstallAsRemovable = lib.mkIf (!isx86) true;
+
+  # Mount ESP for EFI support.
+  fileSystems."/boot" = lib.mkIf (!isx86) {
+    device = "/dev/disk/by-label/ESP";
+    fsType = "vfat";
+  };
+
+  # Hack the whole damn image. Can't elegantly override this.
+  system.build.azureImage = lib.mkForce (import "${modulesPath}/../lib/make-disk-image.nix" {
+    name = "azure-image";
+    postVM = ''
+      ${pkgs.vmTools.qemu}/bin/qemu-img convert -f raw -o subformat=fixed,force_size -O vpc $diskImage $out/disk.vhd
+      rm $diskImage
+    '';
+    # configFile = ./azure-config-user.nix;
+    format = "raw";
+    # Just for this line.
+    partitionTableType = if (!isx86) then "efi" else "legacy";
+    inherit (config.virtualisation.azureImage) diskSize contents;
+    inherit config lib pkgs;
+  });
 
   networking.hostName = lib.mkOverride 900 "base";
 
