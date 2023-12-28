@@ -9,9 +9,7 @@ jobs:
     name: Build Image
     strategy:
       matrix:
-        include:
-        - config: x86_64-base
-        - config: aarch64-base
+        system: [x86_64-linux, aarch64-linux]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -23,10 +21,11 @@ jobs:
     - uses: cachix/install-nix-action@v24
       with:
         nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-        extra_nix_config: extra-platforms = x86_64-linux aarch64-linux
-    - name: Build ${{matrix.config}}.config.system.build.azureImage
+        extra_nix_config: extra-platforms = ${{matrix.system}}
+    - name: Build base.${{matrix.system}}.config.system.build.azureImage
       run: |
-        nix build .#nixosConfigurations.${{matrix.config}}.config.system.build.azureImage
+        nix build .#nixosConfigurations.base.${{matrix.system}}.config.system.build.azureImage
     - uses: actions/upload-artifact@v4
       with:
         path: result/*
+        name: base.${{matrix.system}}.vhd
