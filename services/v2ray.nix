@@ -21,6 +21,8 @@
   networking.firewall.allowedTCPPorts = map
     (x: x.port) config.services.v2ray.config.inbounds;
 
+  secrets."v2ray".require = true;
+
   system.activationScripts."secrets.v2ray" = {
     deps = [ "etc" "agenix" "agenixInstall" ];
     text = ''
