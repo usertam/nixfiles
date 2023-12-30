@@ -53,4 +53,8 @@ with pkgs.stdenv.hostPlatform;
 
   # Disable reboot on system upgrades.
   system.autoUpgrade.allowReboot = false;
+
+  # Enable zram swap.
+  zramSwap.enable = true;
+  zramSwap.memoryPercent = 100;
 }
