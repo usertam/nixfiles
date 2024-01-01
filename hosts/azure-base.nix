@@ -57,4 +57,14 @@ with pkgs.stdenv.hostPlatform;
   # Enable zram swap.
   zramSwap.enable = true;
   zramSwap.memoryPercent = 100;
+
+  # Try harder to grow partitions.
+  systemd.services.growpart = {
+    startLimitBurst = 5;
+    startLimitIntervalSec = 60;
+    serviceConfig.Restart = "on-failure";
+    serviceConfig.RestartSec = 5;
+    serviceConfig.RemainAfterExit = lib.mkForce false;
+    onSuccess = [ "systemd-growfs-root.service" ];
+  };
 }
