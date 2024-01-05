@@ -5,15 +5,12 @@
     agenix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, agenix }: let
-    specialArgs.lock = nixpkgs.lib.importJSON ./flake.lock;
-    systems = [ "x86_64-linux" "aarch64-linux" ];
-  in with self.nixosConfigurations; {
+  outputs = { self, nixpkgs, agenix }: with self.nixosConfigurations; {
     nixosConfigurations.azure = let
       config = system: {
         name = system;
         value = nixpkgs.lib.nixosSystem {
-          inherit specialArgs system;
+          inherit system;
           modules = [
             ./programs/common.nix
             ./programs/doas.nix
@@ -27,7 +24,7 @@
         };
       };
     in with builtins;
-      listToAttrs (map config systems);
+      listToAttrs (map config [ "x86_64-linux" "aarch64-linux" ]);
 
     nixosConfigurations.srv01 = azure.x86_64-linux.extendModules {
       modules = [

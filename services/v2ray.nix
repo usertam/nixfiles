@@ -28,7 +28,7 @@
   # Can't use before/after, the user "v2ray" only exists during exec.
   services.v2ray.package = let
     wrapper = pkgs.writeScript "v2ray-wrapper" ''
-      #!${pkgs.stdenv.shell} -e
+      #!${pkgs.runtimeShell} -e
       echo "Waiting for config to be decrypted..."
       until [ -r /etc/v2ray/config.json ]; do
         sleep 1
@@ -54,7 +54,7 @@
       Type = "oneshot";
       UMask = 0077;
       ExecStart = pkgs.writeScript "secrets.v2ray" ''
-        #!${pkgs.stdenv.shell} -e
+        #!${pkgs.runtimeShell} -e
         rm -f /etc/v2ray/config.json
         ${pkgs.gnused}/bin/sed -f ${config.age.secrets.v2ray.path} \
           ${configJSON} > /etc/v2ray/config.json

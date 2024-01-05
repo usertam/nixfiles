@@ -1,4 +1,4 @@
-{ lib, pkgs, lock, ... }:
+{ lib, pkgs, ... }:
 
 {
   nix = {
@@ -11,11 +11,13 @@
         type = "indirect";
         id = "nixpkgs";
       };
-      to = {
+      to = let
+        lock = lib.importJSON ../flake.lock;
+      in {
+        inherit (lock.nodes.nixpkgs.locked) rev;
         type = "github";
         owner = "nixos";
         repo = "nixpkgs";
-        inherit (lock.nodes.nixpkgs.locked) rev;
       };
     };
 
