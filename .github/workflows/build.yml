@@ -4,6 +4,8 @@ on:
   push:
     branches:
     - master
+permissions:
+  contents: write
 jobs:
   build:
     name: Build Image
@@ -14,6 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Generate release version
+      run: |
+        PREV=$(curl -s "https://api.github.com/repos/${{github.repository}}/releases" | \
+          jq -r '.[0].tag_name')
+        if [ "$PREV" = "null" ]; then PREV="r0"; fi
+        echo "RELEASE=r$(( ${PREV#r} + 1 ))" >> "$GITHUB_ENV"
     - name: Install qemu and binfmt
       run: |
         sudo apt-get update
@@ -24,7 +32,7 @@ jobs:
         extra_nix_config: extra-platforms = ${{matrix.system}}
     - name: Build azure.${{matrix.system}}.config.system.build.azureImage
       run: |
-        nix build .#nixosConfigurations.azure.${{matrix.system}}.config.system.build.azureImage
+        nix build -L .#nixosConfigurations.azure.${{matrix.system}}.config.system.build.azureImage
     - name: Rename output before upload
       run: |
         cp -a result/*.vhd azure.${{matrix.system}}.vhd
@@ -32,3 +40,7 @@ jobs:
       with:
         path: azure.${{matrix.system}}.vhd
         name: azure.${{matrix.system}}.vhd
+    - uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{env.RELEASE}}
+        files: azure.${{matrix.system}}.vhd
