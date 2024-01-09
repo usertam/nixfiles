@@ -67,4 +67,10 @@ with pkgs.stdenv.hostPlatform;
     serviceConfig.RemainAfterExit = lib.mkForce false;
     onSuccess = [ "systemd-growfs-root.service" ];
   };
+
+  # Let nix daemon use alternative TMPDIR.
+  systemd.services.nix-daemon.environment.TMPDIR = "/nix/var/tmp";
+  systemd.tmpfiles.rules = [
+    "d /nix/var/tmp 0755 root root 1d"
+  ];
 }
