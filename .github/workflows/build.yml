@@ -25,7 +25,10 @@ jobs:
     - name: Build azure.${{matrix.system}}.config.system.build.azureImage
       run: |
         nix build .#nixosConfigurations.azure.${{matrix.system}}.config.system.build.azureImage
+    - name: Rename output before upload
+      run: |
+        cp -a result/*.vhd azure.${{matrix.system}}.vhd
     - uses: actions/upload-artifact@v4
       with:
-        path: result/*
+        path: azure.${{matrix.system}}.vhd
         name: azure.${{matrix.system}}.vhd
