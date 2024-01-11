@@ -1,23 +1,32 @@
 { config, lib, pkgs, modulesPath, ... }:
 
-# Dirty mkForce hacks here to substitute https://github.com/NixOS/nixpkgs/pull/236110.
-with pkgs.stdenv.hostPlatform;
+# Backport of https://github.com/NixOS/nixpkgs/pull/236110.
 
+let
+  isNotx86 = !pkgs.stdenv.hostPlatform.isx86;
+  mkIfNotx86 = attr: lib.mkIf isNotx86 (lib.mkForce attr);
+in
 {
-  imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
+  imports = [
+    "${modulesPath}/virtualisation/azure-image.nix"
+    # Override assertions (isx86) in azure-agent.nix.
+    (lib.recursiveUpdate
+      ((import "${modulesPath}/virtualisation/azure-agent.nix") { inherit config lib pkgs; })
+      { config.content.assertions = []; })
+  ];
 
-  # Bypass isx86 assertion in nixos/modules/virtualisation/azure-agent.nix.
-  assertions = lib.mkIf (!isx86) (lib.mkForce []);
+  # Disable original module with assertions.
+  disabledModules = [ "${modulesPath}/virtualisation/azure-agent.nix" ];
 
   # Generate a GRUB menu ONLY when booting in BIOS.
-  boot.loader.grub.device = lib.mkIf (!isx86) (lib.mkForce "nodev");
+  boot.loader.grub.device = mkIfNotx86 "nodev";
 
   # Enable GRUB EFI support if needed.
-  boot.loader.grub.efiSupport = lib.mkIf (!isx86) true;
-  boot.loader.grub.efiInstallAsRemovable = lib.mkIf (!isx86) true;
+  boot.loader.grub.efiSupport = mkIfNotx86 true;
+  boot.loader.grub.efiInstallAsRemovable = mkIfNotx86 true;
 
   # Mount ESP for EFI support.
-  fileSystems."/boot" = lib.mkIf (!isx86) {
+  fileSystems."/boot" = mkIfNotx86 {
     device = "/dev/disk/by-label/ESP";
     fsType = "vfat";
   };
@@ -31,7 +40,7 @@ with pkgs.stdenv.hostPlatform;
       rm $diskImage
     '';
     format = "raw";
-    partitionTableType = if (!isx86) then "efi" else "legacy";
+    partitionTableType = if isNotx86 then "efi" else "legacy";
     inherit (config.virtualisation.azureImage) diskSize contents;
     inherit config lib pkgs;
   });
