@@ -32,7 +32,7 @@ in
   };
 
   # Force override image creation.
-  system.build.azureImage = lib.mkForce (import "${modulesPath}/../lib/make-disk-image.nix" {
+  system.build.azureImage = lib.mkForce (lib.overrideDerivation (import "${modulesPath}/../lib/make-disk-image.nix" {
     name = "azure-image";
     postVM = ''
       ${pkgs.vmTools.qemu}/bin/qemu-img convert -f raw -o subformat=fixed,force_size -O vpc $diskImage \
@@ -43,7 +43,13 @@ in
     partitionTableType = if isNotx86 then "efi" else "legacy";
     inherit (config.virtualisation.azureImage) diskSize contents;
     inherit config lib pkgs;
-  });
+  }) ({ buildInputs, buildCommand, ... }: {
+    buildInputs = buildInputs ++ [ pkgs.zerofree ];
+    buildCommand = buildCommand + ''
+      export PATH=$PATH:${pkgs.zerofree}/bin
+      zerofree $rootDisk
+    '';
+  }));
 
   networking.hostName = lib.mkOverride 900 "base";
 
