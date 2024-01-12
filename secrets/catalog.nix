@@ -1,6 +1,8 @@
-{ lib, config, ... }:
+{ lib, config, inputs, ... }:
 
 {
+  imports = [ inputs.agenix.nixosModules.default ];
+
   options.secrets = with lib; mkOption {
     type = types.attrsOf (types.submodule ({ config, ... }: {
       options.enable = mkEnableOption "including secret in configuration";
@@ -19,9 +21,10 @@
     description = "Attrset of secrets.";
   };
 
-  config.age.secrets = with builtins; foldl' (x: y: x // y) {} (
+  config.age.secrets = with builtins; listToAttrs (
     map (x: lib.optionalAttrs config.secrets.${x}.enable {
-      "${x}" = {
+      name = x;
+      value = {
         inherit (config.secrets.${x}) owner group;
         file = ./. + "/${x}";
       };
