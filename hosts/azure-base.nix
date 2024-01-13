@@ -41,6 +41,7 @@ in
     '';
     format = "raw";
     partitionTableType = if isNotx86 then "efi" else "legacy";
+    additionalSpace = "0M";
     inherit (config.virtualisation.azureImage) diskSize contents;
     inherit config lib pkgs;
   }) ({ buildInputs, buildCommand, ... }: {
