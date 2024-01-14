@@ -65,7 +65,7 @@ in
 
   # Enable zram swap.
   zramSwap.enable = true;
-  zramSwap.memoryPercent = 100;
+  zramSwap.memoryMax = 2 * 1024 * 1024 * 1024;
 
   # Try harder to grow partitions.
   systemd.services.growpart = {
@@ -81,7 +81,7 @@ in
     fixupPhase = (prev.fixupPhase or "") + ''
       substituteInPlace $out/example/systemd/system/systemd-growfs-root.service \
         --replace RemainAfterExit=yes RemainAfterExit=no
-    ''
+    '';
   });
 
   # Let nix daemon use alternative TMPDIR.
