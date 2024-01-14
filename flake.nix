@@ -37,6 +37,7 @@
       modules = [
         { networking.hostName = "srv01"; }
         ./secrets/catalog.nix
+        ./services/unbound.nix
       ];
     };
 
