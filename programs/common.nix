@@ -1,9 +1,5 @@
 { lib, pkgs, ... }:
 
 {
-  environment.systemPackages = with pkgs; [
-    home-manager
-    git
-    kitty.terminfo
-  ];
+  environment.systemPackages = with pkgs; [ git kitty.terminfo ];
 }
