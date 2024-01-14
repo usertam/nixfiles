@@ -77,6 +77,13 @@ in
     onSuccess = [ "systemd-growfs-root.service" ];
   };
 
+  systemd.package = pkgs.systemd.overrideAttrs (prev: {
+    fixupPhase = (prev.fixupPhase or "") + ''
+      substituteInPlace $out/example/systemd/system/systemd-growfs-root.service \
+        --replace RemainAfterExit=yes RemainAfterExit=no
+    ''
+  });
+
   # Let nix daemon use alternative TMPDIR.
   systemd.services.nix-daemon.environment.TMPDIR = "/nix/var/tmp";
   systemd.tmpfiles.rules = [
