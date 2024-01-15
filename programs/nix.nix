@@ -28,17 +28,13 @@
     settings = {
       experimental-features = [
         "nix-command" "flakes"
-        "auto-allocate-uids" "ca-derivations" "fetch-closure" "recursive-nix" "repl-flake"
+        "auto-allocate-uids" "ca-derivations" "configurable-impure-env"
+        "dynamic-derivations" "fetch-closure" "fetch-tree" "git-hashing"
+        "impure-derivations" "recursive-nix" "repl-flake" "verified-fetches"
       ] ++ lib.optional pkgs.stdenv.isLinux "cgroups";
       auto-allocate-uids = true;
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
       use-cgroups = true;
     };
   };
-
-  # Let nix daemon use alternative TMPDIR.
-  systemd.services.nix-daemon.environment.TMPDIR = "/nix/var/tmp";
-  systemd.tmpfiles.rules = [
-    "d /nix/var/tmp 0755 root root 1d"
-  ];
 }
