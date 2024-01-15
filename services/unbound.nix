@@ -11,20 +11,7 @@
       };
       auth-zone = {
         name = "usertam.dev.";
-        zonefile = builtins.toFile "usertam.dev.zone" ''
-          $ORIGIN usertam.dev.
-          $TTL    10m
-          @ IN SOA ns.usertam.dev. root.usertam.dev. (
-            2024010101 ; serial
-            10m        ; refresh
-            5m         ; retry
-            1w         ; expire
-            5m         ; negative
-          )
-          @     IN NS     ns.usertam.dev.
-          ns    IN A      20.205.110.200
-          www   IN CNAME  usertam.dev.
-        '';
+        zonefile = config.secrets."unbound/usertam.dev.zone".path;
       };
     };
   };
@@ -33,4 +20,6 @@
     allowedTCPPorts = server.port;
     allowedUDPPorts = server.port;
   };
+
+  secrets."unbound/usertam.dev.zone".enable = true;
 }

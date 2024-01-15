@@ -4,8 +4,13 @@
   imports = [ inputs.agenix.nixosModules.default ];
 
   options.secrets = with lib; mkOption {
-    type = types.attrsOf (types.submodule ({ config, ... }: {
+    type = with types; attrsOf (submodule ({ config, name, ... }: {
       options.enable = mkEnableOption "including secret in configuration";
+      options.path = mkOption {
+        type = types.path;
+        default = "/run/secrets/" + name;
+        description = "Path where the decrypted secret is installed.";
+      };
       options.owner = mkOption {
         type = types.str;
         default = "root";
@@ -21,11 +26,13 @@
     description = "Attrset of secrets.";
   };
 
+  config.age.secretsDir = "/run/secrets";
+  config.age.secretsMountPoint = config.age.secretsDir + ".d";
   config.age.secrets = with builtins; listToAttrs (
     map (x: lib.optionalAttrs config.secrets.${x}.enable {
       name = x;
       value = {
-        inherit (config.secrets.${x}) owner group;
+        inherit (config.secrets.${x}) owner group path;
         file = ./. + "/${x}";
       };
     }) (attrNames config.secrets));
