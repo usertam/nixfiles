@@ -77,12 +77,14 @@ in
     onSuccess = [ "systemd-growfs-root.service" ];
   };
 
-  systemd.package = pkgs.systemd.overrideAttrs (prev: {
-    fixupPhase = (prev.fixupPhase or "") + ''
-      substituteInPlace $out/example/systemd/system/systemd-growfs-root.service \
-        --replace RemainAfterExit=yes RemainAfterExit=no
-    '';
-  });
+  systemd.package = with pkgs; runCommand systemd.name {
+    nativeBuildInputs = [ systemd ];
+    inherit (systemd) outputs passthru;
+  } (builtins.concatStringsSep ""
+      (map (x: "mkdir -p \$${x}; cp -a ${systemd.${x}}/* \$${x}\n") systemd.outputs) + ''
+    substituteInPlace $out/example/systemd/system/systemd-growfs-root.service \
+      --replace RemainAfterExit=yes RemainAfterExit=n
+  '');
 
   # Let nix daemon use alternative TMPDIR.
   systemd.services.nix-daemon.environment.TMPDIR = "/nix/var/tmp";
