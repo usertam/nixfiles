@@ -21,11 +21,12 @@
           ./hosts/common.nix
         ];
       };
-      eachSystem = nixpkgs.lib.genAttrs (import inputs.systems);
-      attrs = eachSystem (system: common system);
-      extendModules = args: builtins.mapAttrs
-        (_: v: v.extendModules args) attrs // { inherit extendModules; };
-    in attrs // { inherit extendModules; };
+      base = nixpkgs.lib.genAttrs (import inputs.systems) common;
+      mkExtend = base: base // {
+        extendModules = args:
+          mkExtend (builtins.mapAttrs (_: v: v.extendModules args) base);
+      };
+    in mkExtend base;
 
     nixosConfigurations.azure = base.extendModules {
       modules = [
