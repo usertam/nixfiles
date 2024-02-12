@@ -30,7 +30,7 @@
     wrapper = pkgs.writeScript "v2ray-wrapper" ''
       #!${pkgs.runtimeShell} -e
       echo "Waiting for config to be decrypted..."
-      until [ -r /etc/v2ray/config.json ]; do
+      while grep -q '00000000-' /etc/v2ray/config.json 2>&1; do
         sleep 1
       done
       exec "$@"
