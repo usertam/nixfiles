@@ -6,8 +6,8 @@
     agenix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: with self.nixosConfigurations; {
-    nixosConfigurations.base = let
+  outputs = { self, nixpkgs, ... }@inputs: {
+    configs.base = let
       common = system: nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
@@ -21,33 +21,31 @@
           ./hosts/common.nix
         ];
       };
-      base = nixpkgs.lib.genAttrs (import inputs.systems) common;
-      mkExtend = base: base // {
+      sysBase = nixpkgs.lib.genAttrs (import inputs.systems) common;
+      extendSysBase = base: base // {
         extendModules = args:
-          mkExtend (builtins.mapAttrs (_: v: v.extendModules args) base);
+          extendSysBase (builtins.mapAttrs (_: v: v.extendModules args) base);
       };
-    in mkExtend base;
+    in extendSysBase sysBase;
 
-    nixosConfigurations.azure = base.extendModules {
+    configs.azure = self.configs.base.extendModules {
       modules = [
         ./hosts/azure-base.nix
       ];
     };
 
-    nixosConfigurations.srv01 = azure.x86_64-linux.extendModules {
+    configs.az01 = self.configs.azure.aarch64-linux.extendModules {
       modules = [
-        { networking.hostName = "srv01"; }
-        ./secrets/catalog.nix
-        ./services/unbound.nix
-      ];
-    };
-
-    nixosConfigurations.srv02 = azure.aarch64-linux.extendModules {
-      modules = [
-        { networking.hostName = "srv02"; }
         ./secrets/catalog.nix
         ./services/v2ray.nix
       ];
     };
+
+    # Finally, we extend the configurations with the hostname.
+    nixosConfigurations = nixpkgs.lib.mapAttrs (name: config: config.extendModules {
+      modules = nixpkgs.lib.singleton {
+        networking.hostName = nixpkgs.lib.mkOverride 900 name;
+      };
+    }) self.configs;
   };
 }
