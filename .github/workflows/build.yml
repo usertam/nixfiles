@@ -8,46 +8,69 @@ permissions:
   contents: write
 jobs:
   build:
-    name: Build Image
     strategy:
       matrix:
-        system: [x86_64-linux, aarch64-linux]
+        name: [
+          azure.x86_64-linux,
+          azure.aarch64-linux,
+          docker.x86_64-linux,
+          docker.aarch64-linux
+        ]
       fail-fast: false
+    name: Build ${{matrix.name}}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Generate release version
       run: |
-        PREV=$(curl -s "https://api.github.com/repos/${{github.repository}}/releases" | \
-          jq -r '.[0].tag_name')
+        PREV=$(curl -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r '.[0].tag_name')
         if [ "$PREV" = "null" ]; then PREV="r0"; fi
-        echo "RELEASE=r$(( ${PREV#r} + 1 ))" >> "$GITHUB_ENV"
-    - name: Install qemu and binfmt
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y binfmt-support qemu-user-static
+        echo "RELEASE=r$((${PREV#r} + 1))" >> "$GITHUB_ENV"
     - uses: cachix/install-nix-action@v24
       with:
         nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-        extra_nix_config: extra-platforms = ${{matrix.system}}
+        extra_nix_config: extra-platforms = aarch64-darwin aarch64-linux x86_64-darwin x86_64-linux 
     - uses: cachix/cachix-action@v13
       with:
-        name: nixfiles-usertam
+        name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Build azure.${{matrix.system}}.config.system.build.azureImage
+    - name: Check if emulation support is needed
       run: |
-        nix build -L .#nixosConfigurations.azure.${{matrix.system}}.config.system.build.azureImage
-    - name: Compress output before upload
+        SYSTEM=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.pkgs.system)
+        if [ "$SYSTEM" = "x86_64-linux" ]; then
+          echo "EMULATION=false" >> "$GITHUB_ENV"
+        else
+          echo "EMULATION=true" >> "$GITHUB_ENV"
+        fi
+    - name: Install emulation support for extra platforms
+      if: env.EMULATION == 'true'
       run: |
-        cp -a result/*.vhd azure.${{matrix.system}}.vhd
-        zstd azure.${{matrix.system}}.vhd
+        sudo apt-get update
+        sudo apt-get install -y binfmt-support qemu-user-static
+    - name: Build ${{matrix.name}}.toplevel
+      run: |
+        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.toplevel
+    - name: Build ${{matrix.name}}.azureImage for release
+      if: startsWith(matrix.name, 'azure.')
+      run: |
+        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.config.system.nixos.label)
+        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.azureImage
+        export PATH=$(nix build --print-out-paths --no-link nixpkgs#pixz)/bin:$PATH
+        pixz -k result/*.vhd "${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz"
+        echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz" >> "$GITHUB_ENV"
+    - name: Build ${{matrix.name}}.tarball for release
+      if: startsWith(matrix.name, 'docker.')
+      run: |
+        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.config.system.nixos.label)
+        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.tarball
+        cp -a result/tarball/*.tar.xz "${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz"
+        echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@v4
+      if: env.ARTIFACT != ''
       with:
-        name: azure.${{matrix.system}}
-        path: |
-          azure.${{matrix.system}}.vhd
+        name: ${{env.ARTIFACT}}
+        path: ${{env.ARTIFACT}}
     - uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{env.RELEASE}}
-        files: |
-          azure.${{matrix.system}}.vhd.zst
+        files: ${{env.ARTIFACT}}
