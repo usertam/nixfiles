@@ -34,6 +34,12 @@
       ];
     };
 
+    configs.docker = self.configs.base.extendModules {
+      modules = [
+        ./hosts/docker-base.nix
+      ];
+    };
+
     configs.az01 = self.configs.azure.aarch64-linux.extendModules {
       modules = [
         ./secrets/catalog.nix
