@@ -56,5 +56,16 @@
         networking.hostName = nixpkgs.lib.mkOverride 900 name;
       };
     }) self.configs;
+
+    darwinConfigurations.blizzard = darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        ./programs/common.nix
+        ./programs/nix.nix
+        ./programs/nix-no-gc.nix
+        ./programs/zsh.nix
+        ./hosts/darwin.nix
+      ];
+    };
   };
 }

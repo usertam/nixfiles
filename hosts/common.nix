@@ -1,8 +1,11 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   # Set time zone.
   time.timeZone = "Hongkong";
+
+  # Define permissible login shells.
+  environment.shells = lib.singleton pkgs.zsh;
 
   # Define global user defaults.
   users = {

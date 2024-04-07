@@ -1,9 +1,8 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   programs.zsh = {
     enable = true;
-    autosuggestions.enable = true;
     enableCompletion = true;
     promptInit = ''
       source ${pkgs.oh-my-zsh}/share/oh-my-zsh/lib/completion.zsh
@@ -18,5 +17,12 @@
       (x: "alias ${x}='${x} --color=auto'")
       [ "diff" "grep" "ls" ]
     );
+  } // lib.optionalAttrs pkgs.stdenv.isLinux {
+    autosuggestions.enable = true;
+  } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+    # Manually install zsh-autosuggestions.
+    interactiveShellInit = lib.mkIf pkgs.stdenv.isDarwin ''
+      source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    '';
   };
 }
