@@ -16,9 +16,15 @@ jobs:
           docker.x86_64-linux,
           docker.aarch64-linux
         ]
+        include:
+        - set: nixosConfigurations
+          runs-on: ubuntu-latest
+        - set: darwinConfigurations
+          name: blizzard
+          runs-on: macos-14
       fail-fast: false
     name: Build ${{matrix.name}}
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.runs-on}}
     steps:
     - uses: actions/checkout@v4
     - name: Generate release version
@@ -35,8 +41,9 @@ jobs:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Check if emulation support is needed
+      if: matrix.runs-on == 'ubuntu-latest'
       run: |
-        SYSTEM=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.pkgs.system)
+        SYSTEM=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.pkgs.system)
         if [ "$SYSTEM" = "x86_64-linux" ]; then
           echo "EMULATION=false" >> "$GITHUB_ENV"
         else
@@ -49,20 +56,20 @@ jobs:
         sudo apt-get install -y binfmt-support qemu-user-static
     - name: Build ${{matrix.name}}.toplevel
       run: |
-        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.toplevel
+        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.toplevel
     - name: Build ${{matrix.name}}.azureImage for release
       if: startsWith(matrix.name, 'azure.')
       run: |
-        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.config.system.nixos.label)
-        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.azureImage
+        POSTFIX=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.config.system.nixos.label)
+        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.azureImage
         export PATH=$(nix build --print-out-paths --no-link nixpkgs#pixz)/bin:$PATH
         pixz -k result/*.vhd "${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz"
         echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz" >> "$GITHUB_ENV"
     - name: Build ${{matrix.name}}.tarball for release
       if: startsWith(matrix.name, 'docker.')
       run: |
-        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.name}}.config.system.nixos.label)
-        nix build -L .#nixosConfigurations.${{matrix.name}}.config.system.build.tarball
+        POSTFIX=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.config.system.nixos.label)
+        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.tarball
         cp -a result/tarball/*.tar.xz "${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz"
         echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@v4
