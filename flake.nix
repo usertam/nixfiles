@@ -33,13 +33,13 @@
 
     configs.azure = self.configs.base.extendModules {
       modules = [
-        ./hosts/azure-base.nix
+        ./hosts/azure.nix
       ];
     };
 
     configs.docker = self.configs.base.extendModules {
       modules = [
-        ./hosts/docker-base.nix
+        ./hosts/docker.nix
       ];
     };
 
