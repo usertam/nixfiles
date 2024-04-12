@@ -57,7 +57,7 @@
       };
     }) self.configs;
 
-    darwinConfigurations.blizzard = darwin.lib.darwinSystem {
+    darwinConfigurations.gale = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
       modules = [
         ./programs/common.nix
