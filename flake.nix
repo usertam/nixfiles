@@ -64,6 +64,7 @@
         ./programs/nix.nix
         ./programs/nix-no-gc.nix
         ./programs/zsh.nix
+        ./services/tailscale.nix
         ./hosts/darwin.nix
       ];
     };
