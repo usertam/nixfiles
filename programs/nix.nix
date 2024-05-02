@@ -3,7 +3,7 @@
 {
   nix = {
     # Use unstable version of nix.
-    package = pkgs.nixVersions.unstable;
+    package = pkgs.nixVersions.latest;
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = {
