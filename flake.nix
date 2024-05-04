@@ -43,13 +43,6 @@
       ];
     };
 
-    configs.az01 = self.configs.azure.aarch64-linux.extendModules {
-      modules = [
-        ./secrets/catalog.nix
-        ./services/v2ray.nix
-      ];
-    };
-
     # Finally, we extend the configurations with the hostname.
     nixosConfigurations = nixpkgs.lib.mapAttrs (name: config: config.extendModules {
       modules = nixpkgs.lib.singleton {
