@@ -1,6 +1,6 @@
 # nixfiles
 
-A set of opinionated `NixOS`/`nix-darwin` configurations. Home environment is managed with [usertam/nixfiles-home](https://github.com/usertam/nixfiles-home).
+A set of opinionated configurations to both `NixOS` and `nix-darwin`. Home environment is managed with [usertam/nixfiles-home](https://github.com/usertam/nixfiles-home).
 
 ## Clone configuration
 ```sh
@@ -9,19 +9,21 @@ cd ~/Desktop/projects/nixfiles
 ```
 
 ## Build and activate configuration
-#### NixOS
-```sh
+### NixOS
+Use `nixos-rebuild`, or manually build and activate with `nix`.
+```
 nixos-rebuild switch --flake .#base.aarch64-linux
 ```
-```sh
+```
 nix build .#nixosConfigurations.base.aarch64-linux.config.system.build.toplevel
 result/bin/switch-to-configuration switch
 ```
-#### nix-darwin
-```sh
+### nix-darwin
+Use `darwin-rebuild`, or run two activation scripts.
+```
 darwin-rebuild switch --flake .#gale
 ```
-```sh
+```
 nix build .#darwinConfigurations.gale.config.system.build.toplevel
 result/activate-user && result/activate
 ```
