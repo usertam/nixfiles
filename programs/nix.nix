@@ -2,8 +2,8 @@
 
 {
   nix = {
-    # Use unstable version of nix.
-    package = pkgs.nixVersions.latest;
+    # Use bleeding-edge version of nix.
+    package = pkgs.nixVersions.git;
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = {
@@ -28,9 +28,7 @@
     settings = {
       experimental-features = [
         "nix-command" "flakes"
-        "auto-allocate-uids" "ca-derivations" "configurable-impure-env"
-        "dynamic-derivations" "fetch-closure" "fetch-tree" "git-hashing"
-        "impure-derivations" "recursive-nix" "repl-flake" "verified-fetches"
+        "auto-allocate-uids"
       ] ++ lib.optional pkgs.stdenv.isLinux "cgroups";
       auto-allocate-uids = true;
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
