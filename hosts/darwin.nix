@@ -1,8 +1,18 @@
-{ pkgs, ... }:
+{ lib, config, pkgs, inputs, ... }:
 
 {
   # Use a custom configuration.nix location.
-  environment.darwinConfig = "$HOME/Desktop/projects/nixfiles/flake.nix";
+  environment.darwinConfig = "$HOME/Desktop/projects/nixfiles";
+
+  # Override darwin-rebuild in systemPackages.
+  environment.systemPackages = lib.singleton (pkgs.runCommand "darwin-rebuild" {
+    src = [ inputs.darwin.packages.${pkgs.system}.darwin-rebuild ];
+    meta.priority = -10;
+  } ''
+    cp -a $src $out
+    chmod +w $out/bin $out/bin/darwin-rebuild
+    sed -i 's+^flake=+flake=${config.environment.darwinConfig}+' $out/bin/darwin-rebuild
+  '');
 
   # Auto upgrade nix package and the daemon service.
   services.nix-daemon.enable = true;
