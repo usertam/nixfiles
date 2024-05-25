@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   nix = {
@@ -6,6 +6,6 @@
     linux-builder.ephemeral = true;
     linux-builder.config.virtualisation.cores = 4;
     linux-builder.config.nix.extraOptions = "keep-failed = true";
-    settings.extra-trusted-users = [ "@wheel" "@admin" ];
+    settings.trusted-users = lib.mkDefault [];
   };
 }
