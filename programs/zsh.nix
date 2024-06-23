@@ -1,13 +1,21 @@
 { lib, pkgs, ... }:
 
 {
-  programs.zsh = {
+  programs.zsh = let
+    spaceship-prompt = pkgs.spaceship-prompt.overrideAttrs (prev: {
+      patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
+        name = "customize-for-new-nix-shell.patch";
+        url = "https://github.com/usertam/spaceship-prompt/commit/1523fdb06ce3541c59bff1956b4b1ce56ebea24e.patch";
+        hash = "sha256-556saSszFefLxphInOmzJy8DXMxvrvpZjdoIc7jMQZM=";
+      });
+    });
+  in {
     enable = true;
     enableCompletion = true;
     promptInit = ''
       source ${pkgs.oh-my-zsh}/share/oh-my-zsh/lib/completion.zsh
       source ${pkgs.oh-my-zsh}/share/oh-my-zsh/lib/key-bindings.zsh
-      source ${pkgs.spaceship-prompt}/share/zsh/themes/spaceship.zsh-theme
+      source ${spaceship-prompt}/share/zsh/themes/spaceship.zsh-theme
       setopt correct
     '' + ''
       export LESS='-R'
