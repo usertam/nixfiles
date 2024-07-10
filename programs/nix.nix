@@ -21,6 +21,22 @@
       };
     };
 
+    # Lock systems to usertam/nix-systems.
+    registry.systems = {
+      from = {
+        type = "indirect";
+        id = "systems";
+      };
+      to = let
+        lock = lib.importJSON ../flake.lock;
+      in {
+        inherit (lock.nodes.systems.locked) rev;
+        type = "github";
+        owner = "usertam";
+        repo = "nix-systems";
+      };
+    };
+
     # Enable automatic garbage collection and optimise.
     gc.automatic = lib.mkDefault true;
     optimise.automatic = lib.mkDefault true;

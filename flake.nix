@@ -1,15 +1,16 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    systems.url = "github:nix-systems/default";
+    systems.url = "github:usertam/nix-systems";
     darwin.url = "github:lnl7/nix-darwin/master";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
+    agenix.inputs.systems.follows = "systems";
     agenix.inputs.darwin.follows = "darwin";
   };
 
-  outputs = { self, nixpkgs, darwin, ... }@inputs: {
+  outputs = { self, nixpkgs, systems, darwin, ... }@inputs: {
     configs.base = let
       common = system: nixpkgs.lib.nixosSystem {
         inherit system;
@@ -24,7 +25,7 @@
           ./hosts/common.nix
         ];
       };
-      sysBase = nixpkgs.lib.genAttrs (import inputs.systems) common;
+      sysBase = nixpkgs.lib.genAttrs systems.systems common;
       extendSysBase = base: base // {
         extendModules = args:
           extendSysBase (builtins.mapAttrs (_: v: v.extendModules args) base);
