@@ -49,12 +49,8 @@
       ] ++ lib.optional pkgs.stdenv.isLinux "cgroups";
       auto-allocate-uids = true;
       sandbox = lib.mkDefault true;
-      substituters = [
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://llama-cpp.cachix.org"
-        "https://cuda-maintainers.cachix.org"
-        "https://context-minimals.cachix.org"
+      extra-sandbox-paths = [
+        "/private/etc/ssl/openssl.cnf"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
