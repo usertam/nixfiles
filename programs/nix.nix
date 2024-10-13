@@ -39,7 +39,7 @@
 
     # Enable automatic garbage collection and optimise.
     gc.automatic = lib.mkDefault true;
-    optimise.automatic = lib.mkDefault true;
+    optimise.automatic = (lib.mkOverride 900) true;
 
     # Everyone loves experimental features!
     settings = {
