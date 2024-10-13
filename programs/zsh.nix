@@ -5,8 +5,8 @@
     spaceship-prompt = pkgs.spaceship-prompt.overrideAttrs (prev: {
       patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
         name = "customize-for-new-nix-shell.patch";
-        url = "https://github.com/usertam/spaceship-prompt/commit/1523fdb06ce3541c59bff1956b4b1ce56ebea24e.patch";
-        hash = "sha256-556saSszFefLxphInOmzJy8DXMxvrvpZjdoIc7jMQZM=";
+        url = "https://github.com/usertam/spaceship-prompt/commit/3d1e42126fc6c09e5d165fce0811584e62b527ad.patch";
+        hash = "sha256-9Oh1FEmcvTBVtDhMPnFH8570bjs3w05V3iL8Vg2UFNU=";
       });
     });
   in {
