@@ -76,25 +76,6 @@ in
   zramSwap.enable = true;
   zramSwap.memoryMax = 2 * 1024 * 1024 * 1024;
 
-  # Try harder to grow partitions.
-  systemd.services.growpart = {
-    startLimitBurst = 5;
-    startLimitIntervalSec = 60;
-    serviceConfig.Restart = "on-failure";
-    serviceConfig.RestartSec = 5;
-    serviceConfig.RemainAfterExit = lib.mkForce false;
-    onSuccess = [ "systemd-growfs-root.service" ];
-  };
-
-  systemd.package = with pkgs; runCommand systemd.name {
-    nativeBuildInputs = [ systemd ];
-    inherit (systemd) outputs passthru;
-  } (builtins.concatStringsSep ""
-      (map (x: "mkdir -p \$${x}; cp -a ${systemd.${x}}/* \$${x}\n") systemd.outputs) + ''
-    substituteInPlace $out/example/systemd/system/systemd-growfs-root.service \
-      --replace RemainAfterExit=yes RemainAfterExit=n
-  '');
-
   # Let nix daemon use alternative TMPDIR.
   systemd.services.nix-daemon.environment.TMPDIR = "/nix/var/tmp";
   systemd.tmpfiles.rules = [
