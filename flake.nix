@@ -4,52 +4,48 @@
     systems.url = "github:usertam/nix-systems";
     darwin.url = "github:lnl7/nix-darwin/master";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
     agenix.inputs.systems.follows = "systems";
     agenix.inputs.darwin.follows = "darwin";
+    agenix.inputs.home-manager.follows = "home-manager";
   };
 
   outputs = { self, nixpkgs, systems, darwin, ... }@inputs: {
-    configs.base = let
-      common = system: nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit inputs; };
-        modules = [
-          ./programs/common.nix
-          ./programs/doas.nix
-          ./programs/nix.nix
-          ./programs/zsh.nix
-          ./services/openssh.nix
-          ./services/rsyncd.nix
-          ./hosts/common.nix
-        ];
-      };
-      sysBase = nixpkgs.lib.genAttrs systems.systems common;
-      extendSysBase = base: base // {
+    # Base configuration that includes all basic configs.
+    nixosCommon = let
+      nixosBase = nixpkgs.lib.genAttrs systems.systems (system:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { inherit inputs; };
+          modules = [
+            ./programs/common.nix
+            ./programs/doas.nix
+            ./programs/nix.nix
+            ./programs/zsh.nix
+            ./services/openssh.nix
+            ./services/rsyncd.nix
+            ./hosts/common.nix
+          ];
+        }
+      );
+      extendBase = base: base // {
         extendModules = args:
-          extendSysBase (builtins.mapAttrs (_: v: v.extendModules args) base);
+          extendBase (builtins.mapAttrs (_: v: v.extendModules args) base);
       };
-    in extendSysBase sysBase;
+    in extendBase nixosBase;
 
-    configs.azure = self.configs.base.extendModules {
-      modules = [
-        ./hosts/azure.nix
-      ];
-    };
-
-    configs.docker = self.configs.base.extendModules {
-      modules = [
-        ./hosts/docker.nix
-      ];
-    };
-
-    # Finally, we extend the configurations with the hostname.
-    nixosConfigurations = nixpkgs.lib.mapAttrs (name: config: config.extendModules {
-      modules = nixpkgs.lib.singleton {
-        networking.hostName = nixpkgs.lib.mkOverride 900 name;
-      };
-    }) self.configs;
+    # We extend the configurations specified in hosts/configs.
+    nixosConfigurations = with builtins; with nixpkgs.lib; genAttrs
+      (map (x: head (splitString "." x)) (attrNames (readDir ./hosts/configs)))
+      (name: self.nixosCommon.extendModules {
+        modules = [
+          ./hosts/configs/${name}.nix
+          { networking.hostName = mkOverride 900 name; }
+        ];
+      });
 
     darwinConfigurations.gale = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
