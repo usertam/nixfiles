@@ -22,7 +22,6 @@
           specialArgs = { inherit inputs; };
           modules = [
             ./programs/common.nix
-            ./programs/doas.nix
             ./programs/nix.nix
             ./programs/zsh.nix
             ./services/openssh.nix
