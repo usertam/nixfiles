@@ -49,9 +49,7 @@
       ] ++ lib.optional pkgs.stdenv.isLinux "cgroups";
       auto-allocate-uids = true;
       sandbox = lib.mkDefault true;
-      extra-sandbox-paths = [
-        "/private/etc/ssl/openssl.cnf"
-      ];
+      extra-sandbox-paths = lib.optional pkgs.stdenv.isDarwin "/private/etc/ssl/openssl.cnf";
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="

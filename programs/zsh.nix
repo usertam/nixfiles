@@ -6,7 +6,8 @@
       patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
         name = "customize-for-new-nix-shell.patch";
         url = "https://github.com/usertam/spaceship-prompt/commit/5b82eb25ad87a6c0b62c0681794bd0332b285f7e.patch";
-        hash = "sha256-eZYw2J652iZZYvTMAAJqnTYb7PO4xuCcR4LTHLB3FeM=";      });
+        hash = "sha256-eZYw2J652iZZYvTMAAJqnTYb7PO4xuCcR4LTHLB3FeM=";
+      });
     });
   in {
     enable = true;
