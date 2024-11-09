@@ -10,18 +10,10 @@ jobs:
   build:
     strategy:
       matrix:
-        name: [
-          azure.x86_64-linux,
-          azure.aarch64-linux,
-          docker.x86_64-linux,
-          docker.aarch64-linux
-        ]
         include:
-        - set: nixosConfigurations
-          runs-on: ubuntu-latest
         - set: darwinConfigurations
           name: gale
-          runs-on: macos-14
+          runs-on: macos-15
       fail-fast: false
     name: Build ${{matrix.name}}
     runs-on: ${{matrix.runs-on}}
@@ -32,28 +24,65 @@ jobs:
         PREV=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
         if [ "$PREV" = "null" ]; then PREV="r0"; fi
         echo "RELEASE=r$((${PREV#r} + 1))" >> "$GITHUB_ENV"
-    - uses: cachix/install-nix-action@master
+    - uses: DeterminateSystems/nix-installer-action@main
       with:
-        nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-        extra_nix_config: extra-platforms = aarch64-darwin aarch64-linux x86_64-darwin x86_64-linux 
+        mac-case-sensitive: true
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Check if emulation support is needed
-      if: matrix.runs-on == 'ubuntu-latest'
+    - name: Install emulation support
       run: |
         SYSTEM=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.pkgs.system)
-        if [ "$SYSTEM" = "x86_64-linux" ]; then
-          echo "EMULATION=false" >> "$GITHUB_ENV"
-        else
-          echo "EMULATION=true" >> "$GITHUB_ENV"
+        if [ "${{matrix.runs-on}}" = "ubuntu-latest" ] && [ "$SYSTEM" != "x86_64-linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y binfmt-support qemu-user-static
+          echo 'extra-platforms = aarch64-linux' | sudo tee -a /etc/nix/nix.conf
+          sudo systemctl restart nix-daemon
         fi
-    - name: Install emulation support for extra platforms
-      if: env.EMULATION == 'true'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y binfmt-support qemu-user-static
+        if [ "${{matrix.runs-on}}" = "macos-15" ]; then
+          mkdir -p $HOME/.nix-darwin
+          cat <<'EOF' > $HOME/.nix-darwin/flake.nix
+        {
+          outputs = { self, nix-darwin }: {
+            darwinConfigurations.runner = nix-darwin.lib.darwinSystem {
+              system = "aarch64-darwin";
+              modules = [
+                ({ lib, pkgs, ... }:
+                {
+                  nix.linux-builder.enable = true;
+                  nix.linux-builder.package = lib.makeOverridable ({ modules }: (derivation {
+                    name = "linux-builder-nohvf";
+                    system = pkgs.system;
+                    builder = ${pkgs.bash}/bin/bash;
+                    args = [ "-c" ''
+                      create-builder-orig=${pkgs.darwin.linux-builder.override { inherit modules; }}/bin/create-builder
+                      run-nixos-vm-orig=$(${pkgs.coreutils}/bin/grep -o '/nix/store/[a-z0-9-]*/bin/run-nixos-vm' $create-builder-orig)
+                      ${pkgs.gnused}/bin/sed 's|,accel=hvf:tcg||g' $run-nixos-vm-orig > $out/run-nixos-vm
+                      ${pkgs.gnused}/bin/sed "s|$run-nixos-vm-orig|$out/run-nixos-vm|g" $create-builder-orig > $out/create-builder
+                      chmod +x $out/run-nixos-vm $out/create-builder
+                    '' ];
+                  }) // pkgs.darwin.linux-builder.passthru) { modules = [ ]; };
+                  nix.settings.trusted-users = [ "runner" ];
+                  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+                  services.nix-daemon.enable = true;
+                  system.stateVersion = 5;
+                })
+              ];
+            };
+          };
+        }
+        EOF
+          nix build $HOME/.nix-darwin#darwinConfigurations.runner.config.system.build.toplevel
+          sudo rm -rf /etc/nix/nix.conf
+          result/activate-user && sudo result/activate
+          until sudo ssh builder@localhost -p 31022 -i /etc/nix/builder_ed25519 cat /proc/version; do
+            sudo launchctl print system/org.nixos.linux-builder
+            ps aux | grep qemu
+            lsof -i TCP
+            sleep 10
+          done
+        fi
     - name: Build ${{matrix.name}}.toplevel
       run: |
         nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.toplevel
