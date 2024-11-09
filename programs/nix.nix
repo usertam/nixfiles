@@ -50,8 +50,9 @@
         "cgroups"
       ];
       auto-allocate-uids = true;
-      sandbox = lib.mkDefault true;
-      max-jobs = 0;
+      sandbox = true;
+      use-case-hack = false;
+      max-jobs = "auto";
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
