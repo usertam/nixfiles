@@ -4,6 +4,7 @@
   nix.linux-builder = {
     enable = true;
     ephemeral = true;
+    maxJobs = 999999999;
     config = { ... }: {
       imports = [
         ../hosts/common.nix
