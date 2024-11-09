@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@main
     - name: Generate release version
       run: |
-        PREV=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r '.[0].tag_name')
+        PREV=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
         if [ "$PREV" = "null" ]; then PREV="r0"; fi
         echo "RELEASE=r$((${PREV#r} + 1))" >> "$GITHUB_ENV"
     - uses: cachix/install-nix-action@master
