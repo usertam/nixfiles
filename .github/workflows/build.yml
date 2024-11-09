@@ -32,28 +32,43 @@ jobs:
         PREV=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
         if [ "$PREV" = "null" ]; then PREV="r0"; fi
         echo "RELEASE=r$((${PREV#r} + 1))" >> "$GITHUB_ENV"
-    - uses: cachix/install-nix-action@master
-      with:
-        nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-        extra_nix_config: extra-platforms = aarch64-darwin aarch64-linux x86_64-darwin x86_64-linux 
+    - uses: DeterminateSystems/nix-installer-action@main
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Check if emulation support is needed
-      if: matrix.runs-on == 'ubuntu-latest'
+    - name: Install emulation support
       run: |
         SYSTEM=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.pkgs.system)
-        if [ "$SYSTEM" = "x86_64-linux" ]; then
-          echo "EMULATION=false" >> "$GITHUB_ENV"
-        else
-          echo "EMULATION=true" >> "$GITHUB_ENV"
+        if [ "${{matrix.runs-on}}" = "ubuntu-latest" ] && [ "$SYSTEM" != "x86_64-linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y binfmt-support qemu-user-static
+          echo 'extra-platforms = aarch64-linux' | sudo tee -a /etc/nix/nix.conf
+          sudo systemctl restart nix-daemon
         fi
-    - name: Install emulation support for extra platforms
-      if: env.EMULATION == 'true'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y binfmt-support qemu-user-static
+        if [ "${{matrix.runs-on}}" = "macos-14" ]; then
+          mkdir -p ~/.nixpkgs
+          cat <<EOF > ~/.nixpkgs/darwin-configuration.nix
+        { pkgs, ... }:
+        {
+          nix.linux-builder.enable = true;
+          nix.settings.trusted-users = [ "root" "runner" ];
+          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+          nix.useDaemon = true;
+          system.stateVersion = 5;
+        }
+        EOF
+          nix-channel --add http://nixos.org/channels/nixpkgs-unstable nixpkgs
+          nix-channel --update
+          nix-build https://github.com/LnL7/nix-darwin/archive/master.tar.gz -A installer
+          sudo rm -rf /etc/nix/nix.conf
+          ./result/bin/darwin-installer
+          sudo launchctl kickstart -k system/org.nixos.linux-builder
+          until sudo ssh builder@localhost -p 31022 -i /etc/nix/builder_ed25519 cat /proc/version; do
+            sudo launchctl print system/org.nixos.linux-builder
+            sleep 10
+          done
+        fi
     - name: Build ${{matrix.name}}.toplevel
       run: |
         nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.toplevel
