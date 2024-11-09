@@ -7,6 +7,7 @@
     linux-builder.config = { ... }: {
       imports = [
         ../hosts/common.nix
+        ./common.nix
         ./nix-no-gc.nix
         ./nix.nix
         ./zsh.nix

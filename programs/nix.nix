@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   nix = {
@@ -46,10 +46,15 @@
       experimental-features = [
         "nix-command" "flakes"
         "auto-allocate-uids"
-      ] ++ lib.optional pkgs.stdenv.isLinux "cgroups";
+      ] ++ lib.optionals pkgs.stdenv.isLinux [
+        "cgroups"
+      ];
       auto-allocate-uids = true;
       sandbox = lib.mkDefault true;
-      extra-sandbox-paths = lib.optional pkgs.stdenv.isDarwin "/private/etc/ssl/openssl.cnf";
+      max-jobs = 0;
+      extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
+        "/private/etc/ssl/openssl.cnf"
+      ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
@@ -61,4 +66,7 @@
       use-cgroups = true;
     };
   };
+
+  # Make sure nix is in system path.
+  environment.systemPackages = [ config.nix.package ];
 }

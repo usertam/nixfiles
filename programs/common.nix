@@ -2,7 +2,8 @@
 
 let
   kitty.terminfo = pkgs.stdenv.mkDerivation {
-    name = pkgs.kitty.name + "-terminfo";
+    pname = pkgs.kitty.pname + "-terminfo";
+    version = pkgs.kitty.version;
     src = pkgs.kitty.src;
     buildInputs = [ pkgs.ncurses ];
     dontBuild = true;
