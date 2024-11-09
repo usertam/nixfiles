@@ -46,6 +46,13 @@
         ];
       });
 
+    darwinConfigurations.darwin-runner = darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        ./hosts/darwin-runner.nix
+      ];
+    };
+
     darwinConfigurations.gale = darwin.lib.darwinSystem {
       system = "aarch64-darwin";
       specialArgs = { inherit inputs; };

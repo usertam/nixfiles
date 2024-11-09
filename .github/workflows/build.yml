@@ -7,77 +7,101 @@ on:
 permissions:
   contents: write
 jobs:
-  build:
+  version:
+    name: Versioning
+    runs-on: ubuntu-latest
+    outputs:
+      prev: ${{steps.main.outputs.prev}}
+      next: ${{steps.main.outputs.next}}
+    steps:
+    - name: Bump the release version
+      id: main
+      run: |
+        RESPONSE=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s 'https://api.github.com/repos/${{github.repository}}/releases')
+        PREV=$(echo $RESPONSE | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
+        echo "Latest release: $PREV"
+        echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+
+        if [ "$PREV" = "null" ]; then
+          NEXT="r0"
+        else
+          NEXT="r$((${PREV#r} + 1))"
+        fi
+        echo "New release: $NEXT"
+        echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+  build-linux:
+    name: Build Linux
+    needs: version
     strategy:
       matrix:
-        name: [
-          azure.x86_64-linux,
-          azure.aarch64-linux,
-          docker.x86_64-linux,
-          docker.aarch64-linux
-        ]
-        include:
-        - set: nixosConfigurations
-          runs-on: ubuntu-latest
-        - set: darwinConfigurations
-          name: gale
-          runs-on: macos-14
+        cloud: [azure, docker]
+        arch: [aarch64-linux, x86_64-linux]
       fail-fast: false
-    name: Build ${{matrix.name}}
-    runs-on: ${{matrix.runs-on}}
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
-    - name: Generate release version
-      run: |
-        PREV=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s "https://api.github.com/repos/${{github.repository}}/releases" | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
-        if [ "$PREV" = "null" ]; then PREV="r0"; fi
-        echo "RELEASE=r$((${PREV#r} + 1))" >> "$GITHUB_ENV"
-    - uses: cachix/install-nix-action@master
-      with:
-        nix_path: nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz
-        extra_nix_config: extra-platforms = aarch64-darwin aarch64-linux x86_64-darwin x86_64-linux 
+    - uses: DeterminateSystems/nix-installer-action@main
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Check if emulation support is needed
-      if: matrix.runs-on == 'ubuntu-latest'
-      run: |
-        SYSTEM=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.pkgs.system)
-        if [ "$SYSTEM" = "x86_64-linux" ]; then
-          echo "EMULATION=false" >> "$GITHUB_ENV"
-        else
-          echo "EMULATION=true" >> "$GITHUB_ENV"
-        fi
-    - name: Install emulation support for extra platforms
-      if: env.EMULATION == 'true'
+    - name: Install emulation support
+      if: matrix.arch != 'x86_64-linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y binfmt-support qemu-user-static
-    - name: Build ${{matrix.name}}.toplevel
+        echo 'extra-platforms = aarch64-linux' | sudo tee -a /etc/nix/nix.conf
+        sudo systemctl restart nix-daemon
+    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.toplevel
       run: |
-        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.toplevel
-    - name: Build ${{matrix.name}}.azureImage for release
-      if: startsWith(matrix.name, 'azure.')
+        nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.toplevel
+    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.azureImage for release (vhd.xz)
+      if: matrix.cloud == 'azure'
       run: |
-        POSTFIX=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.config.system.nixos.label)
-        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.azureImage
-        export PATH=$(nix build --print-out-paths --no-link nixpkgs#pixz)/bin:$PATH
-        pixz -k result/*.vhd "${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz"
-        echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.vhd.xz" >> "$GITHUB_ENV"
-    - name: Build ${{matrix.name}}.tarball for release
-      if: startsWith(matrix.name, 'docker.')
+        nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.azureImage
+        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.nixos.label)
+        $(nix build --print-out-paths --no-link nixpkgs#pixz)/bin/pixz \
+          -k result/*.vhd "${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.vhd.xz"
+        echo "artifact=${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.vhd.xz" >> "$GITHUB_ENV"
+    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.tarball for release (tar.xz)
+      if: matrix.cloud == 'docker'
       run: |
-        POSTFIX=$(nix eval --raw .#${{matrix.set}}.${{matrix.name}}.config.system.nixos.label)
-        nix build -L .#${{matrix.set}}.${{matrix.name}}.config.system.build.tarball
-        cp -a result/tarball/*.tar.xz "${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz"
-        echo "ARTIFACT=${{matrix.name}}.usertam.nixos-$POSTFIX.tar.xz" >> "$GITHUB_ENV"
-    - uses: actions/upload-artifact@v4
-      if: env.ARTIFACT != ''
+        nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.tarball
+        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.nixos.label)
+        cp -a result/tarball/*.tar.xz "${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.tar.xz"
+        echo "artifact=${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.tar.xz" >> "$GITHUB_ENV"
+    - uses: actions/upload-artifact@main
+      if: env.artifact != ''
       with:
-        name: ${{env.ARTIFACT}}
-        path: ${{env.ARTIFACT}}
-    - uses: softprops/action-gh-release@master
+        name: ${{env.artifact}}
+        path: ${{env.artifact}}
+    - uses: softprops/action-gh-release@v2.1.0
       with:
-        tag_name: ${{env.RELEASE}}
-        files: ${{env.ARTIFACT}}
+        tag_name: ${{needs.version.outputs.next}}
+        files: ${{env.artifact}}
+
+  build-darwin:
+    name: Build Darwin
+    needs: version
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@main
+    - uses: DeterminateSystems/nix-installer-action@main
+      with:
+        mac-case-sensitive: true
+    - uses: cachix/cachix-action@master
+      with:
+        name: usertam-nixfiles
+        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+    - name: Switch to darwin-runner
+      run: |
+        nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
+        sudo rm -rf /etc/nix/nix.conf
+        result/activate-user && sudo result/activate
+        # Wait for the SSH server to be ready.
+        # kex_exchange_identification: read: Connection reset by peer
+        until sudo ssh -o StrictHostKeyChecking=no builder@localhost -p 31022 -i /etc/nix/builder_ed25519 cat /proc/version; do sleep 10; done
+    - name: Build gale.toplevel
+      run: |
+        nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
