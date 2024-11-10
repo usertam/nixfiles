@@ -10,7 +10,7 @@ cd ~/Desktop/projects/nixfiles
 
 ## Build and activate configuration
 ### NixOS
-Use `nixos-rebuild`, or manually build and activate with `nix`.
+Use `nixos-rebuild`, or use `nix` to manually build and activate.
 ```
 nixos-rebuild switch --flake .#base.aarch64-linux
 ```
@@ -19,13 +19,18 @@ nix build .#nixosConfigurations.base.aarch64-linux.config.system.build.toplevel
 result/bin/switch-to-configuration switch
 ```
 ### nix-darwin
-Use `darwin-rebuild`, or run two activation scripts.
+If Nix is not installed, use [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer).
+```
+curl -sL https://install.determinate.systems/nix | \
+  sh -s -- install macos --case-sensitive
+```
+Use `darwin-rebuild`, or use `nix` to run two activation scripts directly.
 ```
 darwin-rebuild switch --flake .#gale
 ```
 ```
 nix build .#darwinConfigurations.gale.config.system.build.toplevel
-result/activate-user && result/activate
+result/activate-user && sudo result/activate
 ```
 
 ## Update flake.lock
