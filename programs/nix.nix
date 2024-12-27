@@ -62,6 +62,7 @@
         "https://llama-cpp.cachix.org"
         "https://cuda-maintainers.cachix.org"
         "https://context-minimals.cachix.org"
+        "https://usertam-nixfiles.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -69,6 +70,7 @@
         "llama-cpp.cachix.org-1:H75X+w83wUKTIPSO1KWy9ADUrzThyGs8P5tmAbkWhQc="
         "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
         "context-minimals.cachix.org-1:pYxyH24J/A04fznRlYbTTjWrn9EsfUQvccGMjfXMdj0="
+        "usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI="
       ];
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
       use-cgroups = true;
