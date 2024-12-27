@@ -57,21 +57,20 @@ jobs:
     - name: Build ${{matrix.cloud}}.${{matrix.arch}}.toplevel
       run: |
         nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.toplevel
-    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.azureImage for release (vhd.xz)
+    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.image for release
       if: matrix.cloud == 'azure'
       run: |
-        nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.azureImage
-        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.nixos.label)
-        $(nix build --print-out-paths --no-link nixpkgs#pixz)/bin/pixz \
-          -k result/*.vhd "${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.vhd.xz"
-        echo "artifact=${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.vhd.xz" >> "$GITHUB_ENV"
-    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.tarball for release (tar.xz)
+        nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.image
+        IMAGE="$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.image.fileName)"
+        $(nix build --print-out-paths --no-link nixpkgs#pixz)/bin/pixz -k "result/$IMAGE" "${IMAGE}.xz"
+        echo "artifact=${IMAGE}.xz" >> "$GITHUB_ENV"
+    - name: Build ${{matrix.cloud}}.${{matrix.arch}}.tarball for release
       if: matrix.cloud == 'docker'
       run: |
         nix build -L .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.build.tarball
-        POSTFIX=$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.nixos.label)
-        cp -a result/tarball/*.tar.xz "${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.tar.xz"
-        echo "artifact=${{matrix.cloud}}.${{matrix.arch}}.usertam.nixos-$POSTFIX.tar.xz" >> "$GITHUB_ENV"
+        TARBALL="nixos-tarball-$(nix eval --raw .#nixosConfigurations.${{matrix.cloud}}.${{matrix.arch}}.config.system.nixos.label)-${{matrix.arch}}.tar.xz"
+        cp -a result/tarball/*.tar.xz "$TARBALL"
+        echo "artifact=$TARBALL" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:

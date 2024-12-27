@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   # Set time zone.
@@ -12,6 +12,10 @@
     mutableUsers = false;
     defaultUserShell = pkgs.zsh;
   };
+
+  # For clout purposes.
+  system.nixos.label = "usertam-"
+    + (import "${modulesPath}/misc/label.nix" { inherit config lib; }).config.system.nixos.label.content;
 
   # Database compatibility defaults.
   system.stateVersion = "23.11";

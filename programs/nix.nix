@@ -2,8 +2,15 @@
 
 {
   nix = {
-    # Use bleeding-edge version of nix.
-    package = pkgs.nixVersions.git;
+    # Use bleeding-edge version of nix, patched with usertam/nix/what-the-hack.
+    package = pkgs.nixVersions.git.overrideAttrs (prev: {
+      patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
+        url = "https://github.com/NixOS/nix/compare/bff9296...usertam:nix:db13dbb.patch";
+        hash = "sha256-LmLDPaDsUCNFvvFvx8qcC2rWJzxHkcn984HqW+38RHU=";
+      });
+      doCheck = false;
+      doInstallCheck = false;
+    });
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = {
@@ -41,7 +48,7 @@
     gc.automatic = lib.mkDefault true;
     optimise.automatic = (lib.mkOverride 900) true;
 
-    # Everyone loves experimental features!
+    # Use these settings in nix.conf.
     settings = {
       experimental-features = [
         "nix-command" "flakes"
@@ -50,9 +57,10 @@
         "cgroups"
       ];
       auto-allocate-uids = true;
+      max-jobs = "auto";
       sandbox = true;
       use-case-hack = false;
-      max-jobs = "auto";
+      warn-dirty = false;
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
