@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - dev
 permissions:
   contents: write
 jobs:
@@ -77,6 +78,7 @@ jobs:
         name: ${{env.artifact}}
         path: ${{env.artifact}}
     - uses: softprops/action-gh-release@v2.1.0
+      if: github.ref == 'refs/heads/master'
       with:
         tag_name: ${{needs.version.outputs.next}}
         files: ${{env.artifact}}
