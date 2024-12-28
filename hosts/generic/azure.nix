@@ -1,9 +1,9 @@
-{ config, pkgs, modulesPath, ... }:
+{ inputs, config, pkgs, modulesPath, ... }:
 
 {
-  imports = [
-    "${modulesPath}/virtualisation/azure-image.nix"
-  ];
+  imports = [ "${inputs.nixpkgs-fix-azure-modules}/nixos/modules/virtualisation/azure-image.nix" ];
+
+  disabledModules = [ "${modulesPath}/virtualisation/disk-size-option.nix" ];
 
   # Support generation 2 VMs, supersede the backport.
   virtualisation.azureImage.vmGeneration = "v2";
@@ -13,11 +13,14 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Use networkd for network configuration.
+  networking.useNetworkd = true;
+
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMRs9DrnxB9kZIe1ZQXAJrkaiW11dNvANWaxxquXX1x2"
   ];
 
-  # Backport: Mount tmpfs on /tmp during boot.
+  # Mount tmpfs on /tmp during boot.
   boot.tmp.useTmpfs = true;
 
   # TCP connections will timeout after 4 minutes on Azure.

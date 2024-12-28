@@ -86,12 +86,29 @@
         "type": "github"
       }
     },
+    "nixpkgs-fix-azure-modules": {
+      "locked": {
+        "lastModified": 1734775501,
+        "narHash": "sha256-g1DexcYbf7jyO/s7hgeIKZRJgxppWkDKEen5yilF1xU=",
+        "owner": "codgician",
+        "repo": "nixpkgs",
+        "rev": "efa73b67e1145312f383b8c7d17b7907d1931b92",
+        "type": "github"
+      },
+      "original": {
+        "owner": "codgician",
+        "ref": "fix-azure-modules",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "agenix": "agenix",
         "darwin": "darwin",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
+        "nixpkgs-fix-azure-modules": "nixpkgs-fix-azure-modules",
         "systems": "systems"
       }
     },

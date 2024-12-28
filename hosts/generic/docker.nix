@@ -1,9 +1,7 @@
 { config, pkgs, modulesPath, ... }:
 
 {
-  imports = [
-    "${modulesPath}/virtualisation/docker-image.nix"
-  ];
+  imports = [ "${modulesPath}/virtualisation/docker-image.nix" ];
 
   disabledModules = [ "${modulesPath}/installer/cd-dvd/channel.nix" ];
 

@@ -1,9 +1,7 @@
 { config, pkgs, modulesPath, ... }:
 
 {
-  imports = [
-    "${modulesPath}/installer/cd-dvd/installation-cd-minimal-new-kernel.nix"
-  ];
+  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal-new-kernel.nix" ];
 
   system.nixos.tags = [ "installer" ];
 
