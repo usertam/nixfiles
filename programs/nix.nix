@@ -64,7 +64,7 @@
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
-      trusted-substituters = [
+      trusted-substituters = builtins.foldl' (x: y: x ++ [ y "${y}/" ]) [] [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://llama-cpp.cachix.org"
