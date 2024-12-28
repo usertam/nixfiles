@@ -1,4 +1,4 @@
-{ modulesPath, ... }:
+{ config, pkgs, modulesPath, ... }:
 
 {
   imports = [
@@ -32,4 +32,13 @@
   systemd.tmpfiles.rules = [
     "d /nix/var/tmp 0755 root root 1d"
   ];
+
+  # Define the release attribute be attached to root flake's packages.
+  system.build.release = pkgs.runCommand "nixos-image-${config.system.nixos.label}-${pkgs.system}" {
+    src = config.system.build.azureImage;
+    nativeBuildInputs = [ pkgs.pixz ];
+  } ''
+    mkdir -p $out
+    pixz -k $src/*.vhd $out/''${name}.vhd.xz
+  '';
 }

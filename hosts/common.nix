@@ -13,7 +13,7 @@
     defaultUserShell = pkgs.zsh;
   };
 
-  # For clout purposes.
+  # For clout purposes. Intend to add this to `system.nixos.tags`, but it will be sorted and be last.
   system.nixos.label = "usertam-"
     + (import "${modulesPath}/misc/label.nix" { inherit config lib; }).config.system.nixos.label.content;
 

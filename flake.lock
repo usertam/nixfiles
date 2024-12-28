@@ -11,7 +11,9 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "systems": "systems"
+        "systems": [
+          "systems"
+        ]
       },
       "locked": {
         "lastModified": 1723293904,
@@ -90,36 +92,20 @@
         "darwin": "darwin",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
-        "systems": "systems_2"
+        "systems": "systems"
       }
     },
     "systems": {
       "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
-    "systems_2": {
-      "locked": {
-        "lastModified": 1735383930,
-        "narHash": "sha256-9WHVsbyfHwBLyYiNtADEanF0FnuagY3zkDyHuqhpXfg=",
+        "lastModified": 1720271492,
+        "narHash": "sha256-cENmgXqL46qhgPEq5jQ4PTTKWqR2ELXitvMRcogHyv0=",
         "owner": "usertam",
         "repo": "nix-systems",
-        "rev": "75cce051ab62d68d0ab9d9a74bbbe283a7e22bbd",
+        "rev": "d0c54b2cf021cba6d77249d0e425df63486a2573",
         "type": "github"
       },
       "original": {
         "owner": "usertam",
-        "ref": "linux",
         "repo": "nix-systems",
         "type": "github"
       }

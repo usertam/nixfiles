@@ -36,13 +36,8 @@ jobs:
     needs: version
     strategy:
       matrix:
-        config:
-        - generic.installer.x86_64-linux
-        - generic.installer.aarch64-linux
-        - generic.azure.x86_64-linux
-        - generic.azure.aarch64-linux
-        - generic.docker.x86_64-linux
-        - generic.docker.aarch64-linux
+        config: [generic.installer, generic.azure, generic.docker]
+        system: [x86_64-linux, aarch64-linux]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -52,49 +47,22 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Show build information
-      run: |
-        echo "Build name: ${CONFIG:=${{matrix.config}}}"
-        echo "Build config: ${ATTR:=nixosConfigurations.${CONFIG}}"
-        echo "Build image label: ${LABEL:=$(nix eval --raw .#${ATTR}.config.system.nixos.label)}"
-        echo "Build architecture: ${SYSTEM:=$(nix eval --raw .#${ATTR}.pkgs.system)}"
-        echo "config=$CONFIG" >> "$GITHUB_ENV"
-        echo "attr=$ATTR" >> "$GITHUB_ENV"
-        echo "label=$LABEL" >> "$GITHUB_ENV"
-        echo "system=$SYSTEM" >> "$GITHUB_ENV"
     - name: Install emulation support
-      if: env.system != 'x86_64-linux'
+      if: matrix.system != 'x86_64-linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y binfmt-support qemu-user-static
         echo 'extra-platforms = aarch64-linux' | sudo tee -a /etc/nix/nix.conf
         sudo systemctl restart nix-daemon
-    - name: Build ${{env.config}}.toplevel
+    - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
-        nix build -L .#${{env.attr}}.config.system.build.toplevel
-    - name: Build ${{env.config}}.isoImage for release
-      if: contains(env.config, 'installer')
+        nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+    - name: Build ${{matrix.system}}.${{matrix.config}}.release
+      if: contains(matrix.config, 'generic')
       run: |
-        nix build -L .#${{env.attr}}.config.system.build.isoImage
-        IMAGE="nixos-image-${{env.label}}-${{env.system}}.iso"
-        $(nix build --print-out-paths --no-link nixpkgs#pixz)/bin/pixz -k \
-          "$(find -L result -name '*.iso')" "${IMAGE}.xz"
-        echo "artifact=${IMAGE}.xz" >> "$GITHUB_ENV"
-    - name: Build ${{env.config}}.azureImage for release
-      if: contains(env.config, 'azure')
-      run: |
-        nix build -L .#${{env.attr}}.config.system.build.azureImage
-        IMAGE="$(nix eval --raw .#${{env.attr}}.config.image.fileName)"
-        $(nix build --print-out-paths --no-link nixpkgs#pixz)/bin/pixz -k \
-          "result/$IMAGE" "${IMAGE}.xz"
-        echo "artifact=${IMAGE}.xz" >> "$GITHUB_ENV"
-    - name: Build ${{env.config}}.tarball for release
-      if: contains(env.config, 'docker')
-      run: |
-        nix build -L .#${{env.attr}}.config.system.build.tarball
-        TARBALL="nixos-tarball-${{env.label}}-${{env.system}}.tar.xz"
-        cp -a "$(find -L result -name '*.tar.xz')" "$TARBALL"
-        echo "artifact=$TARBALL" >> "$GITHUB_ENV"
+        nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        find -L result -name '*.xz' -exec cp -a {} . \;
+        echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:
