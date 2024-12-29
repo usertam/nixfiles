@@ -1,5 +1,7 @@
 # nixfiles
 
+[![Build Image](https://github.com/usertam/nixfiles/actions/workflows/build.yml/badge.svg)](https://github.com/usertam/nixfiles/actions/workflows/build.yml)
+
 A set of opinionated configurations to both `NixOS` and `nix-darwin`. Home environment is managed with [usertam/nixfiles-home](https://github.com/usertam/nixfiles-home).
 
 ## Clone configuration
