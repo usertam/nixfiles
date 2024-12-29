@@ -11,12 +11,13 @@
         ../programs/common.nix
         ../programs/nix.nix
         ../programs/nix-no-gc.nix
+        ../programs/ssh-key.nix
         ../programs/zsh.nix
       ];
       virtualisation.cores = 8;
       virtualisation.darwin-builder.memorySize = 8 * 1024;
-      users.users.root.openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMRs9DrnxB9kZIe1ZQXAJrkaiW11dNvANWaxxquXX1x2"
+      virtualisation.qemu.networkingOptions = [
+        "-nic vmnet-shared,model=virtio-net-pci"
       ];
     };
   };
