@@ -2,11 +2,6 @@ name: "Build Image"
 on:
   workflow_dispatch:
   push:
-    branches:
-    - master
-    - dev
-    tags:
-    - '*'
   schedule:
   - cron: '0 0 * * MON'
 permissions:
@@ -23,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
       with:
-        ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
+        ref: ${{ github.event_name == 'schedule' && 'staging' || github.ref }}
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: cachix/cachix-action@master
       with:
@@ -57,7 +52,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
       with:
-        ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
+        ref: ${{ github.event_name == 'schedule' && 'staging' || github.ref }}
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
@@ -77,33 +72,33 @@ jobs:
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
 
-  post-build-dev:
-    name: Upstream to master branch
-    if: github.ref == 'refs/heads/dev' || github.event_name == 'schedule'
+  post-build-staging:
+    name: "Push: staging -> master"
+    if: github.ref == 'refs/heads/staging' || github.event_name == 'schedule'
     needs: [build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
       with:
-        ref: dev
+        ref: staging
     - name: Push to master if builds passed
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
-        git push origin dev:master
+        git push origin staging:master
 
   post-build-master:
-    name: Fast-forward dev branch to master
+    name: "Push: master -> staging"
     if: github.ref == 'refs/heads/master'
     needs: [build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
-    - name: Sync dev branch to master
+    - name: Sync staging branch to master
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
-        git push --force-with-lease origin master:dev
+        git push --force-with-lease origin master:staging
 
   post-build-release:
     name: Make release
