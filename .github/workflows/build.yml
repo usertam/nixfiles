@@ -5,35 +5,15 @@ on:
     branches:
     - master
     - dev
+    tags:
+    - '*'
+  schedule:
+  - cron: '0 0 * * MON'
 permissions:
   contents: write
 jobs:
-  version:
-    name: Versioning
-    runs-on: ubuntu-latest
-    outputs:
-      prev: ${{steps.main.outputs.prev}}
-      next: ${{steps.main.outputs.next}}
-    steps:
-    - name: Bump the release version
-      id: main
-      run: |
-        RESPONSE=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s 'https://api.github.com/repos/${{github.repository}}/releases')
-        PREV=$(echo $RESPONSE | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
-        echo "Latest release: $PREV"
-        echo "prev=$PREV" >> "$GITHUB_OUTPUT"
-
-        if [ "$PREV" = "null" ]; then
-          NEXT="r0"
-        else
-          NEXT="r$((${PREV#r} + 1))"
-        fi
-        echo "New release: $NEXT"
-        echo "next=$NEXT" >> "$GITHUB_OUTPUT"
-
   build-linux:
     name: Build Linux
-    needs: version
     strategy:
       matrix:
         config: [generic.installer, generic.azure, generic.docker]
@@ -42,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
+      with:
+        ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: cachix/cachix-action@master
       with:
@@ -68,18 +50,14 @@ jobs:
       with:
         name: ${{env.artifact}}
         path: ${{env.artifact}}
-    - uses: softprops/action-gh-release@v2.1.0
-      if: github.ref == 'refs/heads/master'
-      with:
-        tag_name: ${{needs.version.outputs.next}}
-        files: ${{env.artifact}}
 
   build-darwin:
     name: Build Darwin
-    needs: version
     runs-on: macos-15
     steps:
     - uses: actions/checkout@main
+      with:
+        ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
@@ -98,3 +76,59 @@ jobs:
     - name: Build gale.toplevel
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
+
+  post-build-dev:
+    name: Upstream to master branch
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'schedule'
+    needs: [build-linux, build-darwin]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+      with:
+        ref: dev
+    - name: Push to master if builds passed
+      run: |
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config --global user.name 'github-actions[bot]'
+        git push origin dev:master
+
+  post-build-master:
+    name: Fast-forward dev branch to master
+    if: github.ref == 'refs/heads/master'
+    needs: [build-linux, build-darwin]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+    - name: Sync dev branch to master
+      run: |
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config --global user.name 'github-actions[bot]'
+        git push --force-with-lease origin master:dev
+
+  post-build-release:
+    name: Make release
+    needs: [build-linux, build-darwin]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Bump the release version
+      run: |
+        RESPONSE=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s 'https://api.github.com/repos/${{github.repository}}/releases')
+        PREV=$(echo $RESPONSE | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
+        echo "Latest release: $PREV"
+        if [ "${{github.event_name}}" = 'push' ] && [ "${{github.ref_type}}" = 'tag' ]; then
+          echo "Using tag as release version."
+          NEXT="$(basename ${{github.ref}})"
+        elif [ "$PREV" = "null" ]; then
+          NEXT="r0"
+        else
+          NEXT="r$((${PREV#r} + 1))"
+        fi
+        echo "New release version: $NEXT"
+        echo "next=$NEXT" >> "$GITHUB_ENV"
+    - uses: actions/download-artifact@main
+      with:
+        merge-multiple: true
+    - uses: softprops/action-gh-release@v2.1.0
+      with:
+        tag_name: ${{env.next}}
+        files: '*.xz'
