@@ -8,11 +8,12 @@
         coreutils darwin.linux-builder
       ];
     } ''
-      create_builder_orig="${pkgs.darwin.linux-builder.override { inherit modules; }}/bin/create-builder"
-      run_nixos_vm_orig=$(grep -o '/nix/store/[a-z0-9-]*/bin/run-nixos-vm' "$create_builder_orig")
+      createBuilder="${pkgs.darwin.linux-builder.override { inherit modules; }}/bin/create-builder"
+      runNixosVm=$(grep -o '/nix/store/[a-z0-9-]*/bin/run-nixos-vm' "$createBuilder")
+
       mkdir -p $out/bin
-      sed 's|,accel=hvf:tcg||g;s|smp 1|smp "$(${pkgs.coreutils}/bin/nproc)"|g' "$run_nixos_vm_orig" > "$out/bin/run-nixos-vm"
-      sed "s|$run_nixos_vm_orig|$out/bin/run-nixos-vm|g" "$create_builder_orig" > "$out/bin/create-builder"
+      sed 's|,accel=hvf:tcg||g;s|smp 1|smp "$(${pkgs.coreutils}/bin/nproc)"|g' "$runNixosVm" > "$out/bin/run-nixos-vm"
+      sed "s|$runNixosVm|$out/bin/run-nixos-vm|g" "$createBuilder" > "$out/bin/create-builder"
       chmod +x "$out/bin/run-nixos-vm" "$out/bin/create-builder"
     ''
   ) // pkgs.darwin.linux-builder.passthru) { modules = [ ]; };
