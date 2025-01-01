@@ -15,7 +15,7 @@ cd ~/Desktop/projects/nixfiles
 ### Linux
 If Nix is not installed, use [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer).
 ```sh
-curl -sL https://install.determinate.systems/nix | sh -s -- install
+curl -sL https://install.determinate.systems/nix | sh -s -- install --no-confirm
 ```
 Build the toplevel manually with `nix`, then activate by `switch-to-configuration`.
 ```
@@ -35,7 +35,7 @@ nix build .#nixosConfigurations.generic.azure.config.system.build.release
 If Nix is not installed, use [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer). Make sure to set up a case-sensitive volume.
 ```sh
 curl -sL https://install.determinate.systems/nix | \
-  sh -s -- install macos --case-sensitive
+  sh -s -- install macos --case-sensitive --no-confirm
 ```
 Build the toplevel manually with `nix`, then run two activation scripts.
 ```
