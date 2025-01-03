@@ -88,11 +88,11 @@
     },
     "nixpkgs-fix-azure-modules": {
       "locked": {
-        "lastModified": 1734775501,
-        "narHash": "sha256-g1DexcYbf7jyO/s7hgeIKZRJgxppWkDKEen5yilF1xU=",
+        "lastModified": 1735470458,
+        "narHash": "sha256-Nwgyyx3wUN1URBPX/OPRaDslrY0n6A08TyBxVD3cxig=",
         "owner": "codgician",
         "repo": "nixpkgs",
-        "rev": "efa73b67e1145312f383b8c7d17b7907d1931b92",
+        "rev": "f5908be619aac5febce2c2dbbf4da1b308e53828",
         "type": "github"
       },
       "original": {
