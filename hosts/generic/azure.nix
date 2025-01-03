@@ -1,4 +1,4 @@
-{ inputs, config, pkgs, modulesPath, ... }:
+{ inputs, config, lib, pkgs, modulesPath, ... }:
 
 {
   imports = [ "${inputs.nixpkgs-fix-azure-modules}/nixos/modules/virtualisation/azure-image.nix" ];
@@ -39,7 +39,16 @@
 
   # Define the release attribute be attached to root flake's packages.
   system.build.release = pkgs.runCommand "nixos-image-${config.system.nixos.label}-${pkgs.system}" {
-    src = config.system.build.azureImage;
+    src = lib.overrideDerivation config.system.build.azureImage (prev: {
+      args = with lib; init prev.args ++ singleton ((last prev.args).overrideAttrs {
+        # Disable virtiofsd seccomp to fix building on GitHub Actions with qemu-user.
+        # Abuse checkPhase to inject replace logic.
+        checkPhase = ''
+          substituteInPlace $target \
+            --replace-fail "bin/virtiofsd" "bin/virtiofsd --seccomp none"
+        '';
+      });
+    });
     nativeBuildInputs = [ pkgs.pixz ];
   } ''
     mkdir -p $out
