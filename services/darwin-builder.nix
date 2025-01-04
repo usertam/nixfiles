@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ config, lib, ... }:
 
 {
   nix.linux-builder = {
@@ -22,6 +22,12 @@
     };
   };
 
-  # Don't know what this "prerequisite" hopes to achieve.
+  # Make the stdout and stderr available.
+  launchd.daemons.linux-builder.serviceConfig = {
+    StandardOutPath = config.nix.linux-builder.workingDirectory + "/stdout.log";
+    StandardErrorPath = config.nix.linux-builder.workingDirectory + "/stderr.log";
+  };
+
+  # Work around the "prerequisite" of linux-builder.
   nix.settings.trusted-users = lib.mkDefault [];
 }
