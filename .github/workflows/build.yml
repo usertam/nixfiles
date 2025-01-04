@@ -98,7 +98,9 @@ jobs:
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
-        git push --force-with-lease origin master:staging
+        if ! git push --force-with-lease origin master:staging 2>stderr; then
+          echo "::warning::Push: master -> staging: $(grep 'error: ' stderr)"
+        fi
 
   post-build-release:
     name: Make release
