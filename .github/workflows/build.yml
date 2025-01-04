@@ -102,6 +102,7 @@ jobs:
 
   post-build-release:
     name: Make release
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging'
     needs: [build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
