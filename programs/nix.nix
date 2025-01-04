@@ -2,11 +2,11 @@
 
 {
   nix = {
-    # Use bleeding-edge version of nix, patched with usertam/nix/what-the-hack.
+    # Use bleeding-edge version of nix, patched with what-the-hack.
     package = pkgs.nixVersions.git.overrideAttrs (prev: {
       patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
-        url = "https://github.com/NixOS/nix/compare/bff9296...usertam:nix:db13dbb.patch";
-        hash = "sha256-LmLDPaDsUCNFvvFvx8qcC2rWJzxHkcn984HqW+38RHU=";
+        url = "https://github.com/NixOS/nix/compare/442a262...usertam:nix:8957b58.patch";
+        hash = "sha256-1zyPg33MqMiEofx92yjG6rj7DKUair5QuGznK8XAEqY=";
       });
       doCheck = false;
       doInstallCheck = false;

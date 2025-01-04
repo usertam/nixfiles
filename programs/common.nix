@@ -1,18 +1,15 @@
 { lib, pkgs, ... }:
 
-# A hotfix; remove on next update.
-let kitty = pkgs.kitty.overrideAttrs (prev: {
-  patches = (prev.patches or []) ++ lib.singleton (pkgs.fetchpatch {
-    url = "https://github.com/kovidgoyal/kitty/commit/155990ce0b3efd69acad9ec8ab97a495f5f883ed.patch";
-    hash = "sha256-e2Hk/qisTEWwIrEamooIdsRKBBDwlB9t9OkDFGuokSI=";
-  });
-  postPatch = (prev.postPatch or "") + ''
-    # Force kitty-integration no-cursor.
-    substituteInPlace shell-integration/zsh/kitty-integration \
-      --replace '(( ! opt[(Ie)no-cursor] ))' 'false'
-  '';
-  doCheck = false;
-  doInstallCheck = false;
+# The PR hasn't propagated to nixpkgs-unstable.
+# https://github.com/NixOS/nixpkgs/pull/368580
+let kitty = pkgs.kitty.overrideAttrs (prev: rec {
+  version = "0.38.1";
+  src = pkgs.fetchFromGitHub {
+    owner = "kovidgoyal";
+    repo = "kitty";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-0M4Bvhh3j9vPedE/d+8zaiZdET4mXcrSNUgLllhaPJw=";
+  };
 });
 in
 {
