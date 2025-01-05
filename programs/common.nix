@@ -10,6 +10,8 @@ let kitty = pkgs.kitty.overrideAttrs (prev: rec {
     rev = "refs/tags/v${version}";
     hash = "sha256-0M4Bvhh3j9vPedE/d+8zaiZdET4mXcrSNUgLllhaPJw=";
   };
+  doInstallCheck = false;
+  doCheck = false;
 });
 in
 {

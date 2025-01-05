@@ -14,12 +14,15 @@
         ../programs/ssh-key.nix
         ../programs/zsh.nix
       ];
-      virtualisation.cores = 8;
-      virtualisation.darwin-builder.memorySize = 8 * 1024;
-      virtualisation.rosetta.enable = true;
-      virtualisation.qemu.networkingOptions = [
-        "-nic vmnet-shared,model=virtio-net-pci"
-      ];
+      virtualisation = {
+        cores = 8;
+        darwin-builder.memorySize = 8 * 1024;
+        rosetta.enable = true;
+        qemu.options = [
+          "-nic vmnet-shared,model=virtio-net-pci"
+          "-virtfs local,path=/Library/Apple/usr/libexec/oah/RosettaLinux,security_model=passthrough,mount_tag=rosetta"
+        ];
+      };
     };
   };
 

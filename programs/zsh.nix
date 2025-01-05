@@ -65,4 +65,19 @@ in {
       source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
     '';
   };
+
+  # TODO: Add a programs.zsh.program option for nix-darwin.
+  nixpkgs.overlays = [
+    (final: prev: {
+      zsh = prev.runCommand prev.zsh.name {
+        inherit (prev.zsh) outputs meta passthru;
+        src = prev.zsh;
+      } ''
+        cp -a $src $out
+        cp -a ${prev.zsh.doc} $doc; cp -a ${prev.zsh.info} $info; cp -a ${prev.zsh.man} $man
+        chmod -R +w $out/share/zsh/5.9
+        rm -rf $out/share/zsh/5.9/scripts
+      '';
+    })
+  ];
 }
