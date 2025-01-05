@@ -2,7 +2,7 @@
 
 let
   spaceship-prompt = pkgs.spaceship-prompt.overrideAttrs (prev: {
-    buildInputs = with pkgs; (prev.buildInputs or []) ++ [ coreutils gnused ];
+    buildInputs = with pkgs; (prev.buildInputs or []) ++ [ gnugrep gnused ];
     patches = (prev.patches or []) ++ lib.singleton (pkgs.writeText "customize-for-new-nix-shell.patch" ''
       diff --git a/sections/nix_shell.zsh b/sections/nix_shell.zsh
       index 3d35db052..77cdfccfe 100644
@@ -31,10 +31,10 @@ let
       -  if [[ -z "$name" || "$name" == "" ]] then
       -    display_text="$IN_NIX_SHELL"
       +  if [[ $SPACESHIP_NIX_SHELL_VERSION == true ]]; then
-      +    display_text="$(echo "$PATH" | ${pkgs.coreutils}/bin/grep -Po '/nix/store.*?/bin' | uniq | ${pkgs.gnused}/bin/sed ':a; s+/.\{42\}-++g; s+/bin++g; s/\n/, /g; N; ba;')"
+      +    display_text="$(echo "$PATH" | ${pkgs.gnugrep}/bin/grep -Po '/nix/store.*?/bin' | uniq | ${pkgs.gnused}/bin/sed ':a; s+/.\{42\}-++g; s+/bin++g; s/\n/, /g; N; ba;')"
          else
       -    display_text="$IN_NIX_SHELL ($name)"
-      +    display_text="$(echo "$PATH" | ${pkgs.coreutils}/bin/grep -Po '/nix/store.*?/bin' | uniq | ${pkgs.gnused}/bin/sed ':a; s+/.\{42\}-++g; s+/bin++g; s/-[0-9][0-9.]*//g; s/\n/, /g; N; ba;')"
+      +    display_text="$(echo "$PATH" | ${pkgs.gnugrep}/bin/grep -Po '/nix/store.*?/bin' | uniq | ${pkgs.gnused}/bin/sed ':a; s+/.\{42\}-++g; s+/bin++g; s/-[0-9][0-9.]*//g; s/\n/, /g; N; ba;')"
          fi
        
          # Show prompt section
@@ -67,17 +67,15 @@ in {
   };
 
   # TODO: Add a programs.zsh.program option for nix-darwin.
-  nixpkgs.overlays = [
-    (final: prev: {
-      zsh = prev.runCommand prev.zsh.name {
-        inherit (prev.zsh) outputs meta passthru;
-        src = prev.zsh;
-      } ''
-        cp -a $src $out
-        cp -a ${prev.zsh.doc} $doc; cp -a ${prev.zsh.info} $info; cp -a ${prev.zsh.man} $man
-        chmod -R +w $out/share/zsh/5.9
-        rm -rf $out/share/zsh/5.9/scripts
-      '';
-    })
-  ];
+  nixpkgs.overlays = lib.singleton (final: prev: {
+    zsh = prev.runCommand prev.zsh.name {
+      inherit (prev.zsh) outputs meta passthru;
+      src = prev.zsh;
+    } ''
+      cp -a $src $out
+      cp -a ${prev.zsh.doc} $doc; cp -a ${prev.zsh.info} $info; cp -a ${prev.zsh.man} $man
+      chmod -R +w $out/share/zsh/5.9
+      rm -rf $out/share/zsh/5.9/scripts
+    '';
+  });
 }

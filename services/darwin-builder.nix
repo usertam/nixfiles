@@ -1,11 +1,11 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   nix.linux-builder = {
     enable = true;
     ephemeral = true;
     maxJobs = 32;
-    config = {
+    config = { pkgs, ... }: {
       imports = [
         ../hosts/common.nix
         ../programs/common.nix
@@ -20,15 +20,16 @@
         rosetta.enable = true;
         qemu.options = [
           "-nic vmnet-shared,model=virtio-net-pci"
-          "-virtfs local,path=/Library/Apple/usr/libexec/oah/RosettaLinux,security_model=passthrough,mount_tag=rosetta"
+          "-virtfs local,path=/Library/Apple/usr/libexec/oah/RosettaLinux,mount_tag=rosetta,security_model=passthrough,readonly"
         ];
       };
-      systemd.services.rosetta = {
+      systemd.services."mount-rosetta" = {
         description = "Mount rosetta to /run/rosetta";
-        before = [ "systemd-binfmt.service" "sysinit.target" ];
-        after = [ "systemd-tmpfiles-setup.service" ];
-        unitConfig.DefaultDependencies = false;
-        unitConfig.RequiresMountsFor = [ "/nix/store" ];
+        before = [ "systemd-binfmt.service" ];
+        wantedBy = [ "sysinit.target" ];
+        unitConfig.DefaultDependencies = "no";
+        path = with pkgs; [ coreutils util-linux ];
+        serviceConfig.RemainAfterExit = true;
         serviceConfig.Type = "oneshot";
         script = ''
           mkdir -p /run/rosetta
