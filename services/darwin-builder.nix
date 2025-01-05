@@ -23,6 +23,18 @@
           "-virtfs local,path=/Library/Apple/usr/libexec/oah/RosettaLinux,security_model=passthrough,mount_tag=rosetta"
         ];
       };
+      systemd.services.rosetta = {
+        description = "Mount rosetta to /run/rosetta";
+        before = [ "systemd-binfmt.service" "sysinit.target" ];
+        after = [ "systemd-tmpfiles-setup.service" ];
+        unitConfig.DefaultDependencies = false;
+        unitConfig.RequiresMountsFor = [ "/nix/store" ];
+        serviceConfig.Type = "oneshot";
+        script = ''
+          mkdir -p /run/rosetta
+          mount -t 9p -o trans=virtio rosetta /run/rosetta
+        '';
+      };
     };
   };
 
