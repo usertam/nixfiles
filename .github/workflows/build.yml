@@ -81,11 +81,14 @@ jobs:
     - uses: actions/checkout@main
       with:
         ref: staging
+        fetch-depth: 0
     - name: Push to master if builds passed
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
-        git push origin staging:master
+        if ! git push origin staging:master 2>stderr; then
+          echo "::warning::Push: staging -> master: $(grep 'error: ' stderr)"
+        fi
 
   post-build-master:
     name: "Push: master -> staging"
@@ -94,18 +97,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
     - name: Sync staging branch to master
       run: |
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git config --global user.name 'github-actions[bot]'
-        if ! git push --force-with-lease origin master:staging 2>stderr; then
+        if ! git push origin master:staging 2>stderr; then
           echo "::warning::Push: master -> staging: $(grep 'error: ' stderr)"
         fi
 
   post-build-release:
     name: Make release
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging'
-    needs: [build-linux, build-darwin]
+    if: |
+      always() &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging') &&
+      needs.build-linux.result == 'success' && needs.build-darwin.result == 'success' &&
+      (needs.post-build-staging.result == 'success' || needs.post-build-master.result == 'success')
+    needs: [build-linux, build-darwin, post-build-staging, post-build-master]
     runs-on: ubuntu-latest
     steps:
     - name: Bump the release version
