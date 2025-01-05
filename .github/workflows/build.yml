@@ -11,7 +11,7 @@ jobs:
     name: Build Linux
     strategy:
       matrix:
-        config: [generic.installer, generic.azure, generic.docker]
+        config: [generic.installer, generic.azure, generic.docker, generic.oci]
         system: [x86_64-linux, aarch64-linux]
       fail-fast: false
     runs-on: ubuntu-latest
