@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
       with:
-        ref: ${{ github.event_name == 'schedule' && 'staging' || github.ref }}
+        ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: cachix/cachix-action@master
       with:
@@ -40,6 +40,20 @@ jobs:
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.xz' -exec cp -a {} . \;
         echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
+    - name: Rebuild ${{matrix.system}}.${{matrix.config}}.toplevel
+      if: github.event_name == 'schedule'
+      run: |
+        if ! nix build --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel 2>stderr; then
+          echo "::warning::$(grep 'error: ' stderr)"
+          diff -ar $(nix eval --raw){,.check} || true
+        fi
+    - name: Rebuild ${{matrix.system}}.${{matrix.config}}.release
+      if: github.event_name == 'schedule' && contains(matrix.config, 'generic')
+      run: |
+        if ! nix build --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>stderr; then
+          echo "::warning::$(grep 'error: ' stderr)"
+          diff -ar $(nix eval --raw){,.check} || true
+        fi
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:
@@ -52,7 +66,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
       with:
-        ref: ${{ github.event_name == 'schedule' && 'staging' || github.ref }}
+        ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
@@ -71,10 +85,17 @@ jobs:
     - name: Build gale.toplevel
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
+    - name: Rebuild gale.toplevel
+      if: github.event_name == 'schedule'
+      run: |
+        if ! nix build --rebuild --keep-failed .#darwinConfigurations.gale.config.system.build.toplevel 2>stderr; then
+          echo "::warning::$(grep 'error: ' stderr)"
+          diff -ar $(nix eval --raw){,.check} || true
+        fi
 
   post-build-staging:
     name: "Push: staging -> master"
-    if: github.ref == 'refs/heads/staging' || github.event_name == 'schedule'
+    if: github.ref == 'refs/heads/staging' && github.event_name != 'schedule'
     needs: [build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
@@ -92,7 +113,7 @@ jobs:
 
   post-build-master:
     name: "Push: master -> staging"
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && github.event_name != 'schedule'
     needs: [build-linux, build-darwin]
     runs-on: ubuntu-latest
     steps:
