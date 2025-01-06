@@ -1,10 +1,11 @@
-{ config, lib, pkgs, ... }:
+{ inputs, config, lib, pkgs, ... }:
 
 {
   nix.linux-builder = {
     enable = true;
     ephemeral = true;
     maxJobs = 32;
+    systems = [ "aarch64-linux" "x86_64-linux" ];
     config = { pkgs, ... }: {
       imports = [
         ../hosts/common.nix
@@ -20,7 +21,6 @@
         rosetta.enable = true;
         qemu.options = [
           "-nic vmnet-shared,model=virtio-net-pci"
-          "-virtfs local,path=/Library/Apple/usr/libexec/oah/RosettaLinux,mount_tag=rosetta,security_model=passthrough,readonly"
         ];
       };
       systemd.services."mount-rosetta" = {
@@ -32,8 +32,8 @@
         serviceConfig.RemainAfterExit = true;
         serviceConfig.Type = "oneshot";
         script = ''
-          mkdir -p /run/rosetta
-          mount -t 9p -o trans=virtio rosetta /run/rosetta
+          install -Dm755 -t /run/rosetta \
+            ${inputs.rosetta.packages.${pkgs.system}.default}/bin/*
         '';
       };
     };
