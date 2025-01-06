@@ -43,14 +43,14 @@ jobs:
     - name: Rebuild ${{matrix.system}}.${{matrix.config}}.toplevel
       if: github.event_name == 'schedule'
       run: |
-        if ! nix build --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel 2>stderr; then
+        if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel 2>&1 | tee stderr; then
           echo "::warning::$(grep 'error: ' stderr)"
           diff -ar $(nix eval --raw){,.check} || true
         fi
     - name: Rebuild ${{matrix.system}}.${{matrix.config}}.release
       if: github.event_name == 'schedule' && contains(matrix.config, 'generic')
       run: |
-        if ! nix build --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>stderr; then
+        if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>&1 | tee stderr; then
           echo "::warning::$(grep 'error: ' stderr)"
           diff -ar $(nix eval --raw){,.check} || true
         fi
