@@ -26,9 +26,9 @@ result/bin/switch-to-configuration switch
 # After initial activation, switch with:
 # nixos-rebuild switch --flake .#generic.azure
 ```
-Tip: You can now build release images (.tar/iso/vhd.xz) from configurations, if supported.
+Tip: Build release images (.tar/iso/vhd/qcow2.xz) from configurations.
 ```
-nix build .#nixosConfigurations.generic.azure.config.system.build.release
+nix build .#nixosConfigurations.generic.{azure,docker,installer,oci}.config.system.build.release
 ```
 
 ### Darwin
