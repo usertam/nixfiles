@@ -20,10 +20,11 @@ jobs:
       with:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
-    - uses: cachix/cachix-action@master
+    - uses: ryanccn/attic-action@v0.3.1
       with:
-        name: usertam-nixfiles
-        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        endpoint: https://cache.usertam.dev/
+        cache: main
+        token: ${{secrets.ATTIC_TOKEN}}
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
@@ -63,10 +64,11 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
-    - uses: cachix/cachix-action@master
+    - uses: ryanccn/attic-action@v0.3.1
       with:
-        name: usertam-nixfiles
-        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        endpoint: https://cache.usertam.dev/
+        cache: main
+        token: ${{secrets.ATTIC_TOKEN}}
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
