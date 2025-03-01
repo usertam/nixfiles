@@ -95,6 +95,7 @@
   users = {
     groups."nixadm".gid = 351;
   } // lib.optionalAttrs pkgs.stdenv.isDarwin {
-    knownGroups = [ "nixadm" ];
+    knownUsers = lib.mkForce [ ];
+    knownGroups = lib.mkForce [ "nixadm" ];
   };
 }

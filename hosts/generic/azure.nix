@@ -1,7 +1,7 @@
-{ inputs, config, lib, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
-  imports = [ "${inputs.nixpkgs-fix-azure-modules}/nixos/modules/virtualisation/azure-image.nix" ];
+  imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
 
   disabledModules = [ "${modulesPath}/virtualisation/disk-size-option.nix" ];
 
