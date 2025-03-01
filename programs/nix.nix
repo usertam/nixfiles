@@ -81,6 +81,7 @@
         "context-minimals.cachix.org-1:pYxyH24J/A04fznRlYbTTjWrn9EsfUQvccGMjfXMdj0="
         "usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI="
       ];
+      trusted-users = [ "root" "@nixadm" ];
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
       use-cgroups = true;
     };
@@ -88,4 +89,12 @@
 
   # Make sure nix is in system path.
   environment.systemPackages = [ config.nix.package ];
+
+  # Add a user group for trusted-users.
+  # $ sudo -g nixadm -s
+  users = {
+    groups."nixadm".gid = 351;
+  } // lib.optionalAttrs pkgs.stdenv.isDarwin {
+    knownGroups = [ "nixadm" ];
+  };
 }
