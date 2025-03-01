@@ -67,15 +67,16 @@ in {
   };
 
   # TODO: Add a programs.zsh.program option for nix-darwin.
-  nixpkgs.overlays = lib.singleton (final: prev: {
-    zsh = prev.runCommand prev.zsh.name {
-      inherit (prev.zsh) outputs meta passthru;
-      src = prev.zsh;
+  environment.systemPackages = [
+    (pkgs.runCommand pkgs.zsh.name {
+      inherit (pkgs.zsh) outputs passthru;
+      meta = pkgs.zsh.meta // { priority = -10; };
+      src = pkgs.zsh;
     } ''
       cp -a $src $out
-      cp -a ${prev.zsh.doc} $doc; cp -a ${prev.zsh.info} $info; cp -a ${prev.zsh.man} $man
+      cp -a ${pkgs.zsh.doc} $doc; cp -a ${pkgs.zsh.info} $info; cp -a ${pkgs.zsh.man} $man
       chmod -R +w $out/share/zsh/5.9
       rm -rf $out/share/zsh/5.9/scripts
-    '';
-  });
+    '')
+  ];
 }
