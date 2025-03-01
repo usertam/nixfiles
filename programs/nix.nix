@@ -65,11 +65,11 @@
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
-      trusted-substituters = builtins.concatMap (x: [x "${x}/"]) [
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://llama-cpp.cachix.org"
-        "https://cuda-maintainers.cachix.org"
+      substituters = [
+        "https://cache.nixos.org/"
+        "https://nix-community.cachix.org/" # provide cuda and unfree-redistributable packages
+      ];
+      trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
         "https://context-minimals.cachix.org"
         "https://usertam-nixfiles.cachix.org"
       ];
