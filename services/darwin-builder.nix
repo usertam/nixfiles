@@ -17,7 +17,7 @@
       ];
       virtualisation = {
         cores = 8;
-        darwin-builder.memorySize = 8 * 1024;
+        darwin-builder.memorySize = 12 * 1024;
         rosetta.enable = true;
         qemu.options = [
           "-nic vmnet-shared,model=virtio-net-pci"
