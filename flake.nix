@@ -8,7 +8,6 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     rosetta.url = "github:usertam/rosetta";
     rosetta.inputs.nixpkgs.follows = "nixpkgs";
-    rosetta.inputs.systems.follows = "systems";
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
     agenix.inputs.systems.follows = "systems";

@@ -100,17 +100,14 @@
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "systems": [
-          "systems"
         ]
       },
       "locked": {
-        "lastModified": 1736191541,
-        "narHash": "sha256-Mh9I0/y5AKsrYn2jkvq7WasXkbgl4hSB35fMk5JzG7A=",
+        "lastModified": 1743341385,
+        "narHash": "sha256-Th5Q8WzNVQe1kHF4jibBzzLrKRpNFihOPsWz5balYsk=",
         "owner": "usertam",
         "repo": "rosetta",
-        "rev": "f0defc7941cf160a21c80eee79223c8822b79371",
+        "rev": "94051faf0fe21d69ed2ceea07b4fcadda8f4d887",
         "type": "github"
       },
       "original": {
