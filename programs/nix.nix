@@ -92,10 +92,5 @@
 
   # Add a user group for trusted-users.
   # $ sudo -g nixadm -s
-  users = {
-    groups."nixadm".gid = 351;
-  } // lib.optionalAttrs pkgs.stdenv.isDarwin {
-    knownUsers = lib.mkForce [ ];
-    knownGroups = lib.mkForce [ "nixadm" ];
-  };
+  users.groups."nixadm".gid = 351;
 }
