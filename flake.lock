@@ -103,11 +103,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1743341385,
-        "narHash": "sha256-Th5Q8WzNVQe1kHF4jibBzzLrKRpNFihOPsWz5balYsk=",
+        "lastModified": 1743432217,
+        "narHash": "sha256-9SFCUfIMqNvnxLVcP7mUxJSlSxb7uOmh03CfrFBkoEU=",
         "owner": "usertam",
         "repo": "rosetta",
-        "rev": "94051faf0fe21d69ed2ceea07b4fcadda8f4d887",
+        "rev": "23bf812fd65a9146b57ac694042c5e36871e87de",
         "type": "github"
       },
       "original": {
