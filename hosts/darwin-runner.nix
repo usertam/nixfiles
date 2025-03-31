@@ -25,6 +25,5 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" "auto-allocate-uids" ];
   nix.settings.auto-allocate-uids = true;
 
-  services.nix-daemon.enable = true;
   system.stateVersion = 5;
 }
