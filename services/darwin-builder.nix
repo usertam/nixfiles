@@ -23,12 +23,10 @@
           "-nic vmnet-shared,model=virtio-net-pci"
         ];
       };
-      systemd.services."mount-rosetta" = {
-        description = "Mount rosetta to /run/rosetta";
+      systemd.services."install-rosetta" = {
+        description = "Install rosetta to /run/rosetta";
         before = [ "systemd-binfmt.service" ];
         wantedBy = [ "sysinit.target" ];
-        unitConfig.DefaultDependencies = "no";
-        path = with pkgs; [ coreutils util-linux ];
         serviceConfig.RemainAfterExit = true;
         serviceConfig.Type = "oneshot";
         script = ''
