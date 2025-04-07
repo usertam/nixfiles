@@ -69,7 +69,7 @@ jobs:
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
-        sudo rm -rf /etc/nix/nix.conf
+        sudo rm -rf /etc/nix/nix.conf /etc/nix/nix.custom.conf
         result/activate-user && sudo result/activate
         # Wait for the SSH server to be ready.
         # kex_exchange_identification: read: Connection reset by peer
