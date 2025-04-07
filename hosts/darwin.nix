@@ -14,6 +14,10 @@
     sed -i 's+^flake=+flake=${config.environment.darwinConfig}+' $out/bin/darwin-rebuild
   '');
 
+  # Override ugly, stupid default crap.
+  users.knownUsers = lib.mkForce [];
+  users.knownGroups = lib.mkForce [ "nixadm" ];
+
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
