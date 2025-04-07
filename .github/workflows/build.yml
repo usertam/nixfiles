@@ -12,6 +12,9 @@ jobs:
       matrix:
         config: [generic.installer, generic.azure, generic.docker]
         system: [x86_64-linux, aarch64-linux]
+        include:
+        - config: tsrvbld
+          system: x86_64-linux
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:

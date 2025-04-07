@@ -45,6 +45,10 @@
             { networking.hostName = mkOverride 900 name; }
           ];
         });
+
+      nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
+        modules = [ ./hosts/tsrvbld.nix ];
+      };
     });
 
     darwinPackages = forDarwinSystems (system: {
