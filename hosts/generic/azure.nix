@@ -3,8 +3,6 @@
 {
   imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
 
-  disabledModules = [ "${modulesPath}/virtualisation/disk-size-option.nix" ];
-
   # Support generation 2 VMs, supersede the backport.
   virtualisation.azureImage.vmGeneration = "v2";
   virtualisation.azure.acceleratedNetworking = true;
