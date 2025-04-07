@@ -1,7 +1,8 @@
 { config, pkgs, modulesPath, ... }:
 
 {
-  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal-new-kernel.nix" ];
+  # Original installation-cd-minimal-new-kernel incompatible with old ZFS release.
+  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
 
   system.nixos.tags = [ "installer" ];
 
