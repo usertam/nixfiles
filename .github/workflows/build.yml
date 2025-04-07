@@ -1,11 +1,10 @@
-name: "Build Image"
+name: "Build tests on platforms"
 on:
   workflow_dispatch:
   push:
+  pull_request:
   schedule:
   - cron: '0 0 * * MON'
-permissions:
-  contents: write
 jobs:
   build-linux:
     name: Build Linux
@@ -20,11 +19,10 @@ jobs:
       with:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
-    - uses: ryanccn/attic-action@v0.3.1
+    - uses: cachix/cachix-action@master
       with:
-        endpoint: https://cache.usertam.dev/
-        cache: main
-        token: ${{secrets.ATTIC_TOKEN}}
+        name: usertam-nixfiles
+        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
@@ -34,14 +32,14 @@ jobs:
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.xz' -exec cp -a {} . \;
         echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
-    - name: Rebuild ${{matrix.system}}.${{matrix.config}}.toplevel
+    - name: Deterministic check on ${{matrix.system}}.${{matrix.config}}.toplevel
       if: github.event_name == 'schedule'
       run: |
         if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel 2>&1 | tee stderr; then
           echo "::warning::$(grep 'error: ' stderr)"
           diff -ar $(nix eval --raw){,.check} || true
         fi
-    - name: Rebuild ${{matrix.system}}.${{matrix.config}}.release
+    - name: Deterministic check on ${{matrix.system}}.${{matrix.config}}.release
       if: github.event_name == 'schedule' && contains(matrix.config, 'generic')
       run: |
         if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>&1 | tee stderr; then
@@ -64,11 +62,10 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
-    - uses: ryanccn/attic-action@v0.3.1
+    - uses: cachix/cachix-action@master
       with:
-        endpoint: https://cache.usertam.dev/
-        cache: main
-        token: ${{secrets.ATTIC_TOKEN}}
+        name: usertam-nixfiles
+        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
@@ -80,78 +77,10 @@ jobs:
     - name: Build gale.toplevel
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
-    - name: Rebuild gale.toplevel
+    - name: Deterministic check on gale.toplevel
       if: github.event_name == 'schedule'
       run: |
         if ! nix build --rebuild --keep-failed .#darwinConfigurations.gale.config.system.build.toplevel 2>stderr; then
           echo "::warning::$(grep 'error: ' stderr)"
           diff -ar $(nix eval --raw){,.check} || true
         fi
-
-  post-build-staging:
-    name: "Push: staging -> master"
-    if: github.ref == 'refs/heads/staging' && github.event_name != 'schedule'
-    needs: [build-linux, build-darwin]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@main
-      with:
-        ref: staging
-        fetch-depth: 0
-    - name: Push to master if builds passed
-      run: |
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git config --global user.name 'github-actions[bot]'
-        if ! git push origin staging:master 2>stderr; then
-          echo "::warning::Push: staging -> master: $(grep 'error: ' stderr)"
-        fi
-
-  post-build-master:
-    name: "Push: master -> staging"
-    if: github.ref == 'refs/heads/master' && github.event_name != 'schedule'
-    needs: [build-linux, build-darwin]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@main
-      with:
-        fetch-depth: 0
-    - name: Sync staging branch to master
-      run: |
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git config --global user.name 'github-actions[bot]'
-        if ! git push origin master:staging 2>stderr; then
-          echo "::warning::Push: master -> staging: $(grep 'error: ' stderr)"
-        fi
-
-  post-build-release:
-    name: Make release
-    if: |
-      always() &&
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging') &&
-      needs.build-linux.result == 'success' && needs.build-darwin.result == 'success' &&
-      (needs.post-build-staging.result == 'success' || needs.post-build-master.result == 'success')
-    needs: [build-linux, build-darwin, post-build-staging, post-build-master]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Bump the release version
-      run: |
-        RESPONSE=$(curl -H 'authorization: Bearer ${{secrets.GITHUB_TOKEN}}' -s 'https://api.github.com/repos/${{github.repository}}/releases')
-        PREV=$(echo $RESPONSE | jq -r 'map(.tag_name) | sort_by(split("r")[1] | tonumber) | last')
-        echo "Latest release: $PREV"
-        if [ "${{github.event_name}}" = 'push' ] && [ "${{github.ref_type}}" = 'tag' ]; then
-          echo "Using tag as release version."
-          NEXT="$(basename ${{github.ref}})"
-        elif [ "$PREV" = "null" ]; then
-          NEXT="r0"
-        else
-          NEXT="r$((${PREV#r} + 1))"
-        fi
-        echo "New release version: $NEXT"
-        echo "next=$NEXT" >> "$GITHUB_ENV"
-    - uses: actions/download-artifact@main
-      with:
-        merge-multiple: true
-    - uses: softprops/action-gh-release@v2.1.0
-      with:
-        tag_name: ${{env.next}}
-        files: '*.xz'
