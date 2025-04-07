@@ -47,7 +47,10 @@
         });
 
       nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
-        modules = [ ./hosts/tsrvbld.nix ];
+        modules = [
+          ./hosts/tsrvbld.nix
+          ./services/tailscale.nix
+        ];
       };
     });
 
