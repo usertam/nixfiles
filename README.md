@@ -47,6 +47,14 @@ result/activate-user && sudo result/activate
 # darwin-rebuild switch
 ```
 
+### Optionally with binary cache
+Tip: You can build things faster with the custom binary cache.
+```sh
+sudo nix build .#nixosConfigurations.generic.installer.config.system.build.toplevel \
+  --extra-substituters 'https://usertam-nixfiles.cachix.org' \
+  --extra-trusted-public-keys 'usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI='
+```
+
 ## Maintenance
 ```sh
 github:usertam/nixfiles
