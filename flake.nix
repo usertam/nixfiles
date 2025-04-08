@@ -32,6 +32,7 @@
           ./programs/zsh.nix
           ./services/openssh.nix
           ./services/rsyncd.nix
+          ./services/tailscale.nix
           ./hosts/common.nix
         ];
       };
@@ -43,13 +44,18 @@
           modules = [
             ./hosts/generic/${name}.nix
             { networking.hostName = mkOverride 900 name; }
+            { system.nixos.tags = mkOverride 900 [ name ]; }
           ];
         });
 
       nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
-        modules = [
+        modules = with nixpkgs.lib; [
+          ./hosts/modules/intel.nix
+          ./hosts/modules/boot-uefi.nix
+          ./hosts/modules/boot-mnt.nix
           ./hosts/tsrvbld.nix
-          ./services/tailscale.nix
+          { networking.hostName = mkOverride 900 "tsrvbld"; }
+          { system.nixos.tags = mkOverride 900 [ "tsrvbld" ]; }
         ];
       };
     });
