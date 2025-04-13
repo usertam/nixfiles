@@ -13,8 +13,7 @@
     });
 
     # Lock nixpkgs in registry.
-    # Override "${modulesPath}/installer/cd-dvd/channel.nix".
-    registry.nixpkgs = lib.mkOverride 900 {
+    registry.nixpkgs = lib.mkForce {
       from = {
         type = "indirect";
         id = "nixpkgs";
