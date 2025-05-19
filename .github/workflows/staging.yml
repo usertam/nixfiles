@@ -28,8 +28,10 @@ jobs:
       if: env.FLAKE_UPDATE == 'true'
       run: |
         git push -f origin staging:staging
-        gh pr create --base master --head staging \
-          --reviewer "@github-actions" \
-          --body "Automatic update running `nix flake update --commit-lock-file`."
+        if [ -z $(gh pr list --head staging) ]; then
+          gh pr create --base master --head staging \
+            --title 'Bump flakes inputs' \
+            --body 'Automatic bump by running `nix flake update --commit-lock-file`.'
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
