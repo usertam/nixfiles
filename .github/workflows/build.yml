@@ -91,3 +91,11 @@ jobs:
           echo "::warning::$(grep 'error: ' stderr)"
           diff -ar $(nix eval --raw){,.check} || true
         fi
+
+  build-status:
+    name: Build Status
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-darwin]
+    if: always()
+    steps:
+    - run: ${{!contains(needs.*.result, 'failure')}}
