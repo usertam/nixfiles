@@ -11,12 +11,22 @@ jobs:
     name: Stage updates on staging branch
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/create-github-app-token@v2
+      id: staging-bot-token
+      with:
+        app-id: ${{ secrets.STAGING_BOT_APP_ID }}
+        private-key: ${{ secrets.STAGING_BOT_PRIVATE_KEY }}
     - uses: actions/checkout@main
-    - uses: DeterminateSystems/nix-installer-action@main
-    - name: Set up github-actions name and email
+      with:
+        token: ${{ steps.staging-bot-token.outputs.token }}
+    - name: Set up staging bot identity
       run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+        BOT_LOGIN="${{ steps.staging-bot-token.outputs.app-slug }}[bot]"
+        git config user.name "$BOT_LOGIN"
+        git config user.email "$(gh api "/users/$BOT_LOGIN" --jq '.id')+$BOT_LOGIN@users.noreply.github.com"
+      env:
+        GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}
+    - uses: DeterminateSystems/nix-installer-action@main
     - name: Update flake lock file
       run: |
         git switch -c staging
@@ -24,11 +34,6 @@ jobs:
         if ! git diff origin/master staging --exit-code; then
           echo "FLAKE_UPDATE=true" >> $GITHUB_ENV
         fi
-    - uses: actions/create-github-app-token@v2
-      id: pr-bot-token
-      with:
-        app-id: ${{ secrets.PR_BOT_APP_ID }}
-        private-key: ${{ secrets.PR_BOT_PRIVATE_KEY }}
     - name: Create pull request
       if: env.FLAKE_UPDATE == 'true'
       run: |
@@ -39,4 +44,4 @@ jobs:
             --body 'Automatic bump by running `nix flake update --commit-lock-file`.'
         fi
       env:
-        GH_TOKEN: ${{ steps.pr-bot-token.outputs.token }}
+        GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}
