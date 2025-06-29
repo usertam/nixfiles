@@ -3,13 +3,14 @@
 {
   nix = {
     # Use bleeding-edge version of nix, patched with what-the-hack.
-    package = (pkgs.nixVersions.latest.appendPatches [
+    package = (pkgs.nixVersions.nixComponents_2_29.appendPatches [
       (pkgs.fetchpatch {
-        url = "https://github.com/NixOS/nix/compare/3f13cc0f8...usertam:nix:ecac5de06.patch";
-        hash = "sha256-kncSW90+ygIfAVXUFSNxqEzB8AiTQosPCiPdrywhPMM=";
+        url = "https://github.com/NixOS/nix/compare/master...usertam:nix:ad2869d.patch";
+        hash = "sha256-nG403Ex/w3CnsNd7+c0HFDuwbe68OazvGuASFXYZZI8=";
       })
-    ]).overrideAttrs (prev: {
-      doCheck = pkgs.stdenv.isLinux;
+    ]).nix-everything.overrideAttrs (prev: {
+      doCheck = false;
+      doInstallCheck = false;
     });
 
     # Lock nixpkgs in registry.
