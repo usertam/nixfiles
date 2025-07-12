@@ -1,12 +1,21 @@
 name: "Build tests on platforms"
+
+# Only scheduled builds enforce determinism checks by default.
 on:
   workflow_dispatch:
+    inputs:
+      do-determinism-check:
+        description: 'Enable determinism checks'
+        required: true
+        type: boolean
+        default: false
   push:
     branches:
     - master
   pull_request:
   schedule:
   - cron: '0 0 * * MON'
+
 jobs:
   build-linux:
     name: Build Linux
@@ -28,6 +37,7 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        skipAddingSubstituter: ${{ github.event_name == 'schedule' || inputs.do-determinism-check == true }}
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
@@ -37,25 +47,40 @@ jobs:
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.xz' -exec cp -a {} . \;
         echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
-    - name: Deterministic check on ${{matrix.system}}.${{matrix.config}}.toplevel
-      if: github.event_name == 'schedule'
+    - name: Determinism check on ${{matrix.system}}.${{matrix.config}}.toplevel
+      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
       run: |
-        if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel 2>&1 | tee stderr; then
-          echo "::warning::$(grep 'error: ' stderr)"
-          diff -ar $(nix eval --raw){,.check} || true
+        # Move previous build results to new directory.
+        mkdir prev-build && mv result* prev-build
+        # Rebuild everything, enforced by a different store path.
+        nix build -L --store ./nix-store .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+        # Compare the new build results with the previous ones.
+        if ! diff -ar prev-build/result result; then
+          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
+          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive prev-build/result result | tee toplevel-diffoscope.log
         fi
-    - name: Deterministic check on ${{matrix.system}}.${{matrix.config}}.release
-      if: github.event_name == 'schedule' && contains(matrix.config, 'generic')
+    - name: Determinism check on ${{matrix.system}}.${{matrix.config}}.release
+      if: (github.event_name == 'schedule' || inputs.do-determinism-check == true) && contains(matrix.config, 'generic')
       run: |
+        # Here checks if the image building process is deterministic.
         if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>&1 | tee stderr; then
+          echo "::warning::Build of release may not be deterministic, check release-diffoscope.log for details"
           echo "::warning::$(grep 'error: ' stderr)"
-          diff -ar $(nix eval --raw){,.check} || true
+          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive \
+            $(nix eval --raw .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release){,.check} | tee release-diffoscope.log
         fi
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:
         name: ${{env.artifact}}
         path: ${{env.artifact}}
+    - uses: actions/upload-artifact@main
+      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
+      with:
+        name: ${{matrix.system}}-${{matrix.config}}-diffoscope
+        path: |
+          toplevel-diffoscope.log
+          release-diffoscope.log
 
   build-darwin:
     name: Build Darwin
@@ -71,6 +96,7 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        skipAddingSubstituter: ${{ github.event_name == 'schedule' || inputs.do-determinism-check == true }}
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
@@ -82,13 +108,23 @@ jobs:
     - name: Build gale.toplevel
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
-    - name: Deterministic check on gale.toplevel
-      if: github.event_name == 'schedule'
+    - name: Determinism check on gale.toplevel
+      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
       run: |
-        if ! nix build --rebuild --keep-failed .#darwinConfigurations.gale.config.system.build.toplevel 2>stderr; then
-          echo "::warning::$(grep 'error: ' stderr)"
-          diff -ar $(nix eval --raw){,.check} || true
+        # Move previous build results to new directory.
+        mkdir prev-build && mv result* prev-build
+        # Rebuild everything, enforced by a different store path.
+        nix build -L --store ./nix-store .#darwinConfigurations.gale.config.system.build.toplevel
+        # Compare the new build results with the previous ones.
+        if ! diff -ar prev-build/result result; then
+          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
+          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive prev-build/result result | tee toplevel-diffoscope.log
         fi
+    - uses: actions/upload-artifact@main
+      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
+      with:
+        name: darwin-gale-diffoscope
+        path: toplevel-diffoscope.log
 
   build-status:
     name: Build Status
