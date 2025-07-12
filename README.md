@@ -99,6 +99,15 @@ nix flake update --commit-lock-file
 nix flake update --commit-lock-file --override-input nixpkgs nixpkgs
 ```
 
+### Build individual package
+```
+nix build .#darwinConfigurations.gale.config.services.tailscale.package
+
+# Or, in nix repl.
+nix-repl> :lf .
+nix-repl> :b packages.aarch64-darwin.darwinConfigurations.gale.config.services.tailscale.package
+```
+
 ### Evaluate attributes
 ```
 nix eval .#packages.aarch64-linux.nixosConfigurations.generic.docker.config.system.nixos.label
