@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       do-determinism-check:
-        description: 'Enable determinism checks'
+        description: 'Enable determinism-check builds'
         required: true
         type: boolean
         default: false
@@ -37,7 +37,6 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-        skipAddingSubstituter: ${{ github.event_name == 'schedule' || inputs.do-determinism-check == true }}
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
@@ -47,40 +46,104 @@ jobs:
         nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.xz' -exec cp -a {} . \;
         echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
-    - name: Determinism check on ${{matrix.system}}.${{matrix.config}}.toplevel
-      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
-      run: |
-        # Move previous build results to new directory.
-        mkdir prev-build && mv result* prev-build
-        # Rebuild everything, enforced by a different store path.
-        nix build -L --store ./nix-store .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-        # Compare the new build results with the previous ones.
-        if ! diff -ar prev-build/result result; then
-          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
-          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive prev-build/result result | tee toplevel-diffoscope.log
-        fi
-    - name: Determinism check on ${{matrix.system}}.${{matrix.config}}.release
-      if: (github.event_name == 'schedule' || inputs.do-determinism-check == true) && contains(matrix.config, 'generic')
-      run: |
-        # Here checks if the image building process is deterministic.
-        if ! nix build -L --rebuild --keep-failed .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release 2>&1 | tee stderr; then
-          echo "::warning::Build of release may not be deterministic, check release-diffoscope.log for details"
-          echo "::warning::$(grep 'error: ' stderr)"
-          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive \
-            $(nix eval --raw .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release){,.check} | tee release-diffoscope.log
-        fi
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:
         name: ${{env.artifact}}
         path: ${{env.artifact}}
+
+  build-linux-determinism-check:
+    name: Build Linux with determinism checks
+    if: github.event_name == 'schedule' || inputs.do-determinism-check == true
+    strategy:
+      matrix:
+        config: [generic.installer, generic.docker]
+        system: [x86_64-linux, aarch64-linux]
+        include:
+        - config: tsrvbld
+          system: x86_64-linux
+      fail-fast: false
+    runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
+    steps:
+    - uses: actions/checkout@main
+      with:
+        ref: ${{github.ref}}
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: cachix/cachix-action@master
+      with:
+        name: usertam-nixfiles
+        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        skipAddingSubstituter: true
+    - name: Set up local overlays
+      run: |
+        sudo mkdir -p /overlay/{a,b}{/nix,-work,-upper}
+        sudo mount -t overlay overlay \
+          -o lowerdir=/nix \
+          -o upperdir=/overlay/a-upper \
+          -o workdir=/overlay/a-work \
+          /overlay/a/nix
+        sudo mount -t overlay overlay \
+          -o lowerdir=/nix \
+          -o upperdir=/overlay/b-upper \
+          -o workdir=/overlay/b-work \
+          /overlay/b/nix
+    - name: Prefetch prebuilt dependencies
+      run: |
+        nix-store --query --references \
+          $(nix eval --raw .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel.drvPath) \
+          | xargs nix-store --realise --max-jobs 0 || true
+    - name: Bind mount /nix -> /overlay/a/nix
+      run: |
+        sudo systemctl stop nix-daemon
+        sudo mount --bind /overlay/a/nix /nix
+        sudo systemctl start nix-daemon
+        sudo systemctl status nix-daemon
+    - name: First build ${{matrix.system}}.${{matrix.config}}.toplevel
+      run: |
+        sudo $(which nix) build -L \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+    - name: First build ${{matrix.system}}.${{matrix.config}}.release
+      if: contains(matrix.config, 'generic')
+      run: |
+        sudo $(which nix) build -L \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+    - name: Bind mount /nix -> /overlay/b/nix
+      run: |
+        sudo systemctl stop nix-daemon
+        sudo umount /nix
+        sudo mount --bind /overlay/b/nix /nix
+        sudo systemctl start nix-daemon
+        sudo systemctl status nix-daemon
+    - name: Second build ${{matrix.system}}.${{matrix.config}}.toplevel
+      run: |
+        sudo $(which nix) build -L \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+    - name: Second build ${{matrix.system}}.${{matrix.config}}.release
+      if: contains(matrix.config, 'generic')
+      run: |
+        sudo $(which nix) build -L \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+    - name: Remove bind mounts on /nix
+      run: |
+        sudo systemctl stop nix-daemon
+        sudo umount /nix
+        sudo systemctl start nix-daemon
+        sudo systemctl status nix-daemon
+    - name: Run diffoscope on the overlays
+      run: |
+        sudo $(which nix) run nixpkgs#diffoscopeMinimal -- \
+          --markdown diffoscope.md --status-fd 2 \
+          --exclude-directory-metadata recursive /overlay/a-upper/store /overlay/b-upper/store
+        if [ -f diffoscope.md ]; then
+          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
+        fi
+        echo "diff=$(! test -f diffoscope.md; echo $?)" >> $GITHUB_ENV
     - uses: actions/upload-artifact@main
-      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
+      if: env.diff == '1'
       with:
         name: ${{matrix.system}}-${{matrix.config}}-diffoscope
         path: |
-          toplevel-diffoscope.log
-          release-diffoscope.log
+          diffoscope.md
 
   build-darwin:
     name: Build Darwin
@@ -96,7 +159,6 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-        skipAddingSubstituter: ${{ github.event_name == 'schedule' || inputs.do-determinism-check == true }}
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
@@ -108,28 +170,11 @@ jobs:
     - name: Build gale.toplevel
       run: |
         nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
-    - name: Determinism check on gale.toplevel
-      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
-      run: |
-        # Move previous build results to new directory.
-        mkdir prev-build && mv result* prev-build
-        # Rebuild everything, enforced by a different store path.
-        nix build -L --store ./nix-store .#darwinConfigurations.gale.config.system.build.toplevel
-        # Compare the new build results with the previous ones.
-        if ! diff -ar prev-build/result result; then
-          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
-          nix run nixpkgs#diffoscopeMinimal -- --exclude-directory-metadata recursive prev-build/result result | tee toplevel-diffoscope.log
-        fi
-    - uses: actions/upload-artifact@main
-      if: github.event_name == 'schedule' || inputs.do-determinism-check == true
-      with:
-        name: darwin-gale-diffoscope
-        path: toplevel-diffoscope.log
 
   build-status:
     name: Build Status
     runs-on: ubuntu-latest
-    needs: [build-linux, build-darwin]
+    needs: [build-linux, build-darwin, build-linux-determinism-check]
     if: always()
     steps:
     - run: ${{!contains(needs.*.result, 'failure')}}
