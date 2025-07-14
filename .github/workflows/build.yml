@@ -123,6 +123,9 @@ jobs:
       run: |
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+    - name: Second build some garbage
+      run: |
+        sudo $(which nix) build nixpkgs#hello
     - name: Remove bind mounts on /nix
       run: |
         sudo systemctl stop nix-daemon
@@ -134,12 +137,16 @@ jobs:
         sudo $(which nix) run nixpkgs#diffoscopeMinimal -- \
           --markdown diffoscope.md --status-fd 2 \
           --exclude-directory-metadata recursive /overlay/a-upper/store /overlay/b-upper/store
-        if [ -f diffoscope.md ]; then
-          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
+    - name: Verdict on diffoscope output
+      run: |
+        diff_exists=$(test -f diffoscope.md && echo true || echo false)
+        echo "diff_exists=$diff_exists" >> $GITHUB_ENV
+        if $diff_exists; then
+          echo "::warning::Builds may not be deterministic, check diffoscope.md for details"
+          false
         fi
-        echo "diff=$(! test -f diffoscope.md; echo $?)" >> $GITHUB_ENV
     - uses: actions/upload-artifact@main
-      if: env.diff == '1'
+      if: always() && env.diff_exists == 'true'
       with:
         name: ${{matrix.system}}-${{matrix.config}}-diffoscope
         path: |
