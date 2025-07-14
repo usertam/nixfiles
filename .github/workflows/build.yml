@@ -131,15 +131,17 @@ jobs:
         sudo systemctl status nix-daemon
     - name: Run diffoscope on the overlays
       run: |
-        sudo $(which nix) run nixpkgs#diffoscopeMinimal -- \
-          --markdown diffoscope.md --status-fd 2 \
-          --exclude-directory-metadata recursive /overlay/a-upper/store /overlay/b-upper/store
-        if [ -f diffoscope.md ]; then
-          echo "::warning::Build of toplevel may not be deterministic, check toplevel-diffoscope.log for details"
-        fi
-        echo "diff=$(! test -f diffoscope.md; echo $?)" >> $GITHUB_ENV
+        sudo "$(which nix)" run nixpkgs#diffoscopeMinimal -- \
+          --markdown diffoscope.md \
+          --status-fd 2 \
+          --exclude-directory-metadata recursive \
+          /overlay/a-upper/store /overlay/b-upper/store || {
+            echo "diff_exists=true" >> $GITHUB_ENV
+            echo "::warning::Builds may not be deterministic, check diffoscope.md for details"
+            false
+        }
     - uses: actions/upload-artifact@main
-      if: env.diff == '1'
+      if: always() && env.diff_exists == 'true'
       with:
         name: ${{matrix.system}}-${{matrix.config}}-diffoscope
         path: |
