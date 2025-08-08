@@ -66,8 +66,9 @@
         "/private/etc/ssl/openssl.cnf"
       ];
       substituters = [
-        "https://cache.nixos.org/"
-        "https://nix-community.cachix.org/" # provide cuda and unfree-redistributable packages
+        "https://cache.nixos.org"
+        "https://nix-community.cachix.org"  # provide cuda and unfree-redistributable packages
+        "https://cache.ztier.in"            # provide riscv64-linux packages
       ];
       trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
         "https://context-minimals.cachix.org"
