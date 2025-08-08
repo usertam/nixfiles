@@ -65,6 +65,8 @@
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
+      http-connections = 0;         # Uncap parallel TCP connections.
+      max-substitution-jobs = 128;  # This is 8x the default.
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"  # provide cuda and unfree-redistributable packages
@@ -81,6 +83,7 @@
         "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
         "context-minimals.cachix.org-1:pYxyH24J/A04fznRlYbTTjWrn9EsfUQvccGMjfXMdj0="
         "usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI="
+        "cache.ztier.link-1:3P5j2ZB9dNgFFFVkCQWT3mh0E+S3rIWtZvoql64UaXM="
       ];
       trusted-users = [ "root" "@nixadm" ];
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
