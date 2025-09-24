@@ -39,11 +39,11 @@ jobs:
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
-        nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: Build ${{matrix.system}}.${{matrix.config}}.release
       if: contains(matrix.config, 'generic')
       run: |
-        nix build -L .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.xz' -exec cp -a {} . \;
         echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
@@ -171,7 +171,7 @@ jobs:
         until sudo ssh -o StrictHostKeyChecking=no builder@localhost -p 31022 -i /etc/nix/builder_ed25519 cat /proc/version; do sleep 10; done
     - name: Build gale.toplevel
       run: |
-        nix build -L .#darwinConfigurations.gale.config.system.build.toplevel
+        nix build -L --keep-going .#darwinConfigurations.gale.config.system.build.toplevel
 
   build-status:
     name: Build Status
