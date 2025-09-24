@@ -65,8 +65,9 @@
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
-      http-connections = 0;         # Uncap parallel TCP connections.
-      max-substitution-jobs = 128;  # This is 8x the default.
+      http-connections = 0;                 # Uncap parallel TCP connections.
+      max-substitution-jobs = 128;          # This is 8x the default.
+      download-buffer-size = 536870912;     # 512 MiB.
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"  # provide cuda and unfree-redistributable packages
