@@ -1,34 +1,5 @@
 {
   "nodes": {
-    "agenix": {
-      "inputs": {
-        "darwin": [
-          "darwin"
-        ],
-        "home-manager": [
-          "home-manager"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "systems": [
-          "systems"
-        ]
-      },
-      "locked": {
-        "lastModified": 1754433428,
-        "narHash": "sha256-NA/FT2hVhKDftbHSwVnoRTFhes62+7dxZbxj5Gxvghs=",
-        "owner": "ryantm",
-        "repo": "agenix",
-        "rev": "9edb1787864c4f59ae5074ad498b6272b3ec308d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "ryantm",
-        "repo": "agenix",
-        "type": "github"
-      }
-    },
     "darwin": {
       "inputs": {
         "nixpkgs": [
@@ -50,26 +21,6 @@
         "type": "github"
       }
     },
-    "home-manager": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1758464306,
-        "narHash": "sha256-i56XRXqjwJRdVYmpzVUQ0ktqBBHqNzQHQMQvFRF/acQ=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "939e91e1cff1f99736c5b02529658218ed819a2a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1758446476,
@@ -88,47 +39,8 @@
     },
     "root": {
       "inputs": {
-        "agenix": "agenix",
         "darwin": "darwin",
-        "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs",
-        "rosetta": "rosetta",
-        "systems": "systems"
-      }
-    },
-    "rosetta": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1743432217,
-        "narHash": "sha256-9SFCUfIMqNvnxLVcP7mUxJSlSxb7uOmh03CfrFBkoEU=",
-        "owner": "usertam",
-        "repo": "rosetta",
-        "rev": "23bf812fd65a9146b57ac694042c5e36871e87de",
-        "type": "github"
-      },
-      "original": {
-        "owner": "usertam",
-        "repo": "rosetta",
-        "type": "github"
-      }
-    },
-    "systems": {
-      "locked": {
-        "lastModified": 1720271492,
-        "narHash": "sha256-cENmgXqL46qhgPEq5jQ4PTTKWqR2ELXitvMRcogHyv0=",
-        "owner": "usertam",
-        "repo": "nix-systems",
-        "rev": "d0c54b2cf021cba6d77249d0e425df63486a2573",
-        "type": "github"
-      },
-      "original": {
-        "owner": "usertam",
-        "repo": "nix-systems",
-        "type": "github"
+        "nixpkgs": "nixpkgs"
       }
     }
   },

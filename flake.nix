@@ -1,26 +1,12 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    systems.url = "github:usertam/nix-systems";
     darwin.url = "github:lnl7/nix-darwin/master";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    rosetta.url = "github:usertam/rosetta";
-    rosetta.inputs.nixpkgs.follows = "nixpkgs";
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-    agenix.inputs.systems.follows = "systems";
-    agenix.inputs.darwin.follows = "darwin";
-    agenix.inputs.home-manager.follows = "home-manager";
   };
 
-  outputs = { self, nixpkgs, systems, darwin, ... }@inputs: let
-    # Intersect the given systems and platforms.
-    forLinuxSystems = with nixpkgs.lib; genAttrs (intersectLists systems.systems platforms.linux);
-    forDarwinSystems = with nixpkgs.lib; genAttrs (intersectLists systems.systems platforms.darwin);
-  in rec {
-    linuxPackages = forLinuxSystems (system: rec {
+  outputs = { self, nixpkgs, darwin, ... }@inputs: rec {
+    linuxPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.linux (system: rec {
       # The common configuration that includes all basic modules.
       nixosConfigurations.common = nixpkgs.lib.nixosSystem {
         inherit system;
@@ -61,7 +47,7 @@
       };
     });
 
-    darwinPackages = forDarwinSystems (system: {
+    darwinPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.darwin (system: {
       # This is used for GitHub Actions to bootstrap a darwin-builder.
       darwinConfigurations.darwin-runner = darwin.lib.darwinSystem {
         inherit system;

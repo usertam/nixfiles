@@ -21,5 +21,5 @@
     + (import "${modulesPath}/misc/label.nix" { inherit config lib; }).config.system.nixos.label.content;
 
   # Database compatibility defaults.
-  system.stateVersion = "24.05";
+  system.stateVersion = (lib.mkOverride 900) "24.05";
 }
