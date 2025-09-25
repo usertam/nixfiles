@@ -79,6 +79,8 @@
       http-connections = 0;                 # Uncap parallel TCP connections.
       max-substitution-jobs = 128;          # This is 8x the default.
       download-buffer-size = 536870912;     # 512 MiB.
+      eval-cores = 0;                       # For detsys nix only; enable parallel evaluation.
+      lazy-trees = true;                    # For detsys nix only.
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"  # provide cuda and unfree-redistributable packages
