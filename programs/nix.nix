@@ -2,16 +2,27 @@
 
 {
   nix = {
-    # Use bleeding-edge version of nix, patched with what-the-hack.
-    package = (pkgs.nixVersions.nixComponents_2_29.appendPatches [
-      (pkgs.fetchpatch {
-        url = "https://github.com/NixOS/nix/compare/master...usertam:nix:0dab9b9f003d5354e2af2227464d5962c740f74f.patch";
-        hash = "sha256-Xudx14849LHbvusVVN1J2PYwLLLE20Jt2OXiYKjlQdg=";
-      })
-    ]).nix-everything.overrideAttrs (prev: {
-      doCheck = false;
-      doInstallCheck = false;
-    });
+    package =
+      let
+        src = pkgs.fetchFromGitHub {
+          owner = "DeterminateSystems";
+          repo = "nix-src";
+          tag = "v3.11.2";
+          hash = "sha256-3Ia+y7Hbwnzcuf1hyuVnFtbnSR6ErQeFjemHdVxjCNE=";
+        };
+        patch = pkgs.fetchpatch {
+          url = "https://github.com/usertam/nix/compare/3eeb09f~5...3eeb09f.patch";
+          hash = "sha256-gASz7PC17+GkNGWNXb93h0r/sVINU9yKYEp/whjI3tA=";
+        };
+        nixComponents' = (pkgs.nixVersions.nixComponents_git.override {
+          inherit src;
+          version = "2.31.1";
+        }).appendPatches [ patch ];
+      in
+      nixComponents'.nix-everything.overrideAttrs (prev: {
+        doCheck = false;
+        doInstallCheck = false;
+      });
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = lib.mkForce {
