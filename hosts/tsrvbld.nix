@@ -46,5 +46,5 @@
   services.libinput.enable = true;
 
   # Don't sleep.
-  services.logind.lidSwitch = "lock";
+  services.logind.settings.Login.HandleLidSwitch = "lock";
 }
