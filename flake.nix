@@ -39,7 +39,6 @@
           ./hosts/modules/intel.nix
           ./hosts/modules/boot-uefi.nix
           ./hosts/modules/boot-mnt.nix
-          ./hosts/modules/gnome.nix
           ./hosts/tsrvbld.nix
           { networking.hostName = mkOverride 900 "tsrvbld"; }
           { system.nixos.tags = mkOverride 900 [ "tsrvbld" ]; }
