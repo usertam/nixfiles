@@ -19,6 +19,7 @@ jobs:
     - uses: actions/checkout@main
       with:
         token: ${{ steps.staging-bot-token.outputs.token }}
+        fetch-depth: 0
     - name: Set up staging bot identity
       run: |
         BOT_LOGIN="${{ steps.staging-bot-token.outputs.app-slug }}[bot]"
@@ -27,6 +28,19 @@ jobs:
       env:
         GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}
     - uses: DeterminateSystems/nix-installer-action@main
+    - name: Cherry-pick non-bot staging commits onto working master
+      run: |
+        mapfile -t COMMITS < <(git rev-list origin/staging ^master \
+          --perl-regexp --author='^(?!.*usertam-staging-bot).*' \
+          --reverse)
+
+        if (( ${#COMMITS[@]} )); then
+          echo 'Changes not staged for working master:'
+          git log --no-walk --pretty=format:'    %h %s (%an)' "${COMMITS[@]}" && echo
+          git cherry-pick --empty=drop "${COMMITS[@]}"
+        else
+          echo 'No changes to cherry-pick.'
+        fi
     - name: Update flake lock file
       run: |
         git switch -c staging
