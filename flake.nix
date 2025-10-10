@@ -30,6 +30,10 @@
       nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
         modules = [ ./hosts/tsrvbld.nix ];
       };
+
+      nixosConfigurations.slate = nixosConfigurations.common.extendModules {
+        modules = [ ./hosts/slate.nix ];
+      };
     });
 
     darwinPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.darwin (system: {
