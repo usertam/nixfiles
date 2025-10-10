@@ -4,6 +4,9 @@
   # Original installation-cd-minimal-new-kernel incompatible with old ZFS release.
   imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
 
+  networking.hostName = lib.mkOverride 900 "generic-installer";
+  system.nixos.tags = lib.mkOverride 900 [ "generic-installer" ];
+
   # Define the release attribute be attached to root flake's packages.
   system.build.release = pkgs.runCommand "nixos-image-${config.system.nixos.label}-${pkgs.system}" {
     src = config.system.build.isoImage;

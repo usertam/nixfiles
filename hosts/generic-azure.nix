@@ -3,6 +3,9 @@
 {
   imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
 
+  networking.hostName = lib.mkOverride 900 "generic-azure";
+  system.nixos.tags = lib.mkOverride 900 [ "generic-azure" ];
+
   # Support generation 2 VMs, supersede the backport.
   virtualisation.azureImage.vmGeneration = "v2";
   virtualisation.azure.acceleratedNetworking = true;

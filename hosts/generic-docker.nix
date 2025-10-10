@@ -3,7 +3,8 @@
 {
   imports = [ "${modulesPath}/virtualisation/docker-image.nix" ];
 
-  system.nixos.tags = [ "docker" ];
+  networking.hostName = lib.mkOverride 900 "generic-docker";
+  system.nixos.tags = lib.mkOverride 900 [ "generic-docker" ];
 
   documentation.doc.enable = false;
 

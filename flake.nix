@@ -7,42 +7,28 @@
 
   outputs = { self, nixpkgs, darwin, ... }@inputs: rec {
     linuxPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.linux (system: rec {
-      # The common configuration that includes all basic modules.
+      # Common subset of all configurations, not meant to be used directly.
       nixosConfigurations.common = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
-        modules = [
-          ./programs/common.nix
-          ./programs/nix.nix
-          ./programs/ssh-key.nix
-          ./programs/zsh.nix
-          ./services/openssh.nix
-          ./services/rsyncd.nix
-          ./services/tailscale.nix
-          ./hosts/common.nix
-        ];
+        modules = [ ./hosts/common.nix ];
       };
 
-      # We populate nixosConfigurations.generic with <config>.<arch>.
-      nixosConfigurations.generic = with nixpkgs.lib; genAttrs
-        (map (x: head (splitString "." x)) (attrNames (builtins.readDir ./hosts/generic)))
-        (name: nixosConfigurations.common.extendModules {
-          modules = [
-            ./hosts/generic/${name}.nix
-            { networking.hostName = mkOverride 900 name; }
-            { system.nixos.tags = mkOverride 900 [ name ]; }
-          ];
-        });
+      # Generic configurations that can be used out of the box or as base for custom ones.
+      nixosConfigurations.generic = nixpkgs.lib.recurseIntoAttrs {
+        azure = nixosConfigurations.common.extendModules {
+          modules = [ ./hosts/generic-azure.nix ];
+        };
+        docker = nixosConfigurations.common.extendModules {
+          modules = [ ./hosts/generic-docker.nix ];
+        };
+        installer = nixosConfigurations.common.extendModules {
+          modules = [ ./hosts/generic-installer.nix ];
+        };
+      };
 
       nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
-        modules = with nixpkgs.lib; [
-          ./hosts/modules/intel.nix
-          ./hosts/modules/boot-uefi.nix
-          ./hosts/modules/boot-mnt.nix
-          ./hosts/tsrvbld.nix
-          { networking.hostName = mkOverride 900 "tsrvbld"; }
-          { system.nixos.tags = mkOverride 900 [ "tsrvbld" ]; }
-        ];
+        modules = [ ./hosts/tsrvbld.nix ];
       };
     });
 
@@ -50,22 +36,14 @@
       # This is used for GitHub Actions to bootstrap a darwin-builder.
       darwinConfigurations.darwin-runner = darwin.lib.darwinSystem {
         inherit system;
-        modules = nixpkgs.lib.singleton ./hosts/darwin-runner.nix;
+        modules = [ ./hosts/darwin-runner.nix ];
       };
 
       # My configuration running on MacBook Air M2.
       darwinConfigurations.gale = darwin.lib.darwinSystem {
         inherit system;
         specialArgs = { inherit inputs; };
-        modules = [
-          ./programs/common.nix
-          ./programs/nix.nix
-          ./programs/nix-no-gc.nix
-          ./programs/zsh.nix
-          ./services/darwin-builder.nix
-          ./services/tailscale.nix
-          ./hosts/darwin.nix
-        ];
+        modules = [ ./hosts/darwin.nix ];
       };
     });
 

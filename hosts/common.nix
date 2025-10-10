@@ -1,6 +1,17 @@
 { config, lib, pkgs, modulesPath, ... }:
 
 {
+  # Import common modules.
+  imports = [
+    ../programs/common.nix
+    ../programs/nix.nix
+    ../programs/ssh-key.nix
+    ../programs/zsh.nix
+    ../services/openssh.nix
+    ../services/rsyncd.nix
+    ../services/tailscale.nix
+  ];
+
   # Set time zone.
   time.timeZone = "Hongkong";
 

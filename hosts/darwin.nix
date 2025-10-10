@@ -1,6 +1,16 @@
 { lib, config, pkgs, inputs, ... }:
 
 {
+  # Import common modules.
+  imports = [
+    ../programs/common.nix
+    ../programs/nix.nix
+    ../programs/nix-no-gc.nix
+    ../programs/zsh.nix
+    ../services/darwin-builder.nix
+    ../services/tailscale.nix
+  ];
+
   # Use a custom configuration.nix location.
   environment.darwinConfig = "$HOME/Desktop/projects/nixfiles";
 
