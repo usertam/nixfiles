@@ -37,8 +37,8 @@
     });
 
     darwinPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.darwin (system: {
-      # This is used for GitHub Actions to bootstrap a darwin-builder.
-      darwinConfigurations.darwin-runner = darwin.lib.darwinSystem {
+      # This is only used for GitHub Actions to bootstrap a darwin-builder.
+      darwinConfigurations.runner = darwin.lib.darwinSystem {
         inherit system;
         modules = [ ./hosts/darwin-runner.nix ];
       };
@@ -47,7 +47,7 @@
       darwinConfigurations.gale = darwin.lib.darwinSystem {
         inherit system;
         specialArgs = { inherit inputs; };
-        modules = [ ./hosts/darwin.nix ];
+        modules = [ ./hosts/darwin-gale.nix ];
       };
     });
 

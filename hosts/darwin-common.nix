@@ -1,7 +1,7 @@
 { lib, config, pkgs, inputs, ... }:
 
 {
-  # Import common modules.
+  # Import common modules, for darwin.
   imports = [
     ../programs/common.nix
     ../programs/nix.nix
@@ -10,9 +10,6 @@
     ../services/darwin-builder.nix
     ../services/tailscale.nix
   ];
-
-  # Use a custom configuration.nix location.
-  environment.darwinConfig = "$HOME/Desktop/projects/nixfiles";
 
   # Override darwin-rebuild in systemPackages.
   environment.systemPackages = lib.singleton (pkgs.runCommand "darwin-rebuild" {
