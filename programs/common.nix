@@ -2,6 +2,9 @@
 
 {
   environment.systemPackages = with pkgs; [
-    git kitty.terminfo
+    btop
+    file
+    git
+    kitty.terminfo
   ];
 }
