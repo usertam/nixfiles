@@ -1,20 +1,24 @@
 { config, lib, pkgs, modulesPath, ... }:
 
 {
+  # Host identity.
   networking.hostName = "tsrvbld";
   system.nixos.tags = [ "tsrvbld" ];
 
-  # We need vagrant to spawn TrustedServer mocks.
-  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "vagrant" ];
-  environment.systemPackages = [ pkgs.vagrant pkgs.sshpass ];
+  # Basic boot stuff, from nixos-generate-config.
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
-  # Enable virtualbox, docker, and KVM.
-  virtualisation = {
-    docker.enable = true;
-    virtualbox.host.enable = true;
-  };
-  environment.etc."vbox/networks.conf".text = "* 0.0.0.0/0 ::/0";
-  boot.kernelModules = [ "kvm-intel" ];
+  hardware.cpu.intel.updateMicrocode = true;
+  hardware.enableRedistributableFirmware = true;
+
+  boot.initrd.availableKernelModules = [
+    "nvme" "sd_mod" "thunderbolt" "usb_storage" "xhci_pci"
+  ];
+
+  boot.kernelModules = [ 
+    "kvm-intel"
+  ];
 
   fileSystems = {
     "/" = {
@@ -28,36 +32,48 @@
     };
   };
 
-  # Enable options to boot in UEFI mode.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
-
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
-  hardware.enableRedistributableFirmware = lib.mkDefault true;
-
-  # Kernel modules available to initrd before rootfs mount.
-  boot.initrd.availableKernelModules = lib.mkDefault [
-    "nvme"
-    "sd_mod"
-    "thunderbolt"
-    "usb_storage"
-    "xhci_pci"
-  ];
-
-  # Enable x11 server and keymap.
-  services.xserver = {
-    enable = true;
-    xkb = {
-      layout = "us";
-      variant = "";
-    };
+  # We need vagrant, virtualbox and docker to spawn TrustedServer mocks.
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "vagrant" ];
+  environment.systemPackages = with pkgs; [ vagrant sshpass ];
+  virtualisation = {
+    docker.enable = true;
+    virtualbox.host.enable = true;
   };
 
-  # Enable display an desktop managers.
+  # VirtualBox needs this to allow host-only ranges.
+  environment.etc."vbox/networks.conf".text = "* 0.0.0.0/0 ::/0";
+
+  # Cross-arch building support with binfmt and qemu.
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];
+  nix.settings.extra-platforms = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];
+  nix.settings.system-features = [ "gccarch-armv7-a" ];
+
+  # Enable NetworkManager with iwd and systemd-resolved.
+  networking.networkmanager = {
+    enable = true;
+    wifi.backend = "iwd";
+    dns = "systemd-resolved";
+  };
+
+  services.resolved = {
+    enable = true;
+    fallbackDns = [ "1.1.1.1" ];
+  };
+
+  # Enable X11 server and keymap.
+  services.xserver = {
+    enable = true;
+    xkb.layout = "us";
+  };
+
+  # Enable GNOME desktop manager.
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
 
-  # Enable audio.
+  # Enable touchpad support.
+  services.libinput.enable = true;
+
+  # Enable audio stuff.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -67,15 +83,25 @@
     pulse.enable = true;
   };
 
-  # Enable auto login.
-  services.displayManager.autoLogin = {
-    enable = true;
-    user = "root";
+  # Declare a regular user and configure auto-login.
+  users.groups.tam = {};
+  users.users.tam = {
+    isNormalUser = true;
+    group = "tam";
   };
 
-  # Enable touchpad support.
-  services.libinput.enable = true;
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "tam";
+  };
 
-  # Don't sleep.
-  services.logind.lidSwitch = "lock";
+  # Goofy-ahh workaround for GNOME autologin
+  # https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
+  systemd.services."getty@tty1".enable = false;
+  systemd.services."autovt@tty1".enable = false;
+
+  # Do NOT sleep, even when the world ends.
+  services.displayManager.gdm.autoSuspend = false;
+  services.logind.settings.Login.HandleLidSwitch = "ignore";
+  systemd.targets.suspend.enable = false;
 }
