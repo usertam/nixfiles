@@ -1,4 +1,4 @@
-{ inputs, config, lib, modulesPath, ... }:
+{ config, lib, inputs, modulesPath, ... }:
 
 {
   nix.linux-builder = {

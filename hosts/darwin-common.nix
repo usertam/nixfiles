@@ -1,4 +1,4 @@
-{ lib, config, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 {
   # Import common modules, for darwin.
