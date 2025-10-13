@@ -1,4 +1,4 @@
-{ config, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   # Original installation-cd-minimal-new-kernel incompatible with old ZFS release.
