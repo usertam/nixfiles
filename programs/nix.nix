@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
   nix = {
@@ -88,9 +88,6 @@
       use-cgroups = true;
     };
   };
-
-  # Make sure nix is in system path.
-  environment.systemPackages = [ config.nix.package ];
 
   # TODO: Workaround of a nix-darwin bug on auto-allocate-uids.
   # It first disables configureBuildUsers because auto-allocate-uids, which skips declaring the nixbld users/group.

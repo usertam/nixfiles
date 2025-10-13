@@ -1,4 +1,4 @@
-{ inputs, config, lib, pkgs, ... }:
+{ inputs, config, lib, modulesPath, ... }:
 
 {
   nix.linux-builder = {
@@ -6,20 +6,14 @@
     ephemeral = true;
     maxJobs = 32;
     systems = [ "aarch64-linux" "x86_64-linux" "riscv64-linux" "armv7l-linux" ];
-    config = { pkgs, ... }: {
+    config = {
       imports = [
         ../hosts/common.nix
-        ../programs/common.nix
-        ../programs/nix.nix
         ../programs/nix-no-gc.nix
-        ../programs/zsh.nix
       ];
       virtualisation = {
         cores = 8;
         darwin-builder.memorySize = 12 * 1024;
-        qemu.options = [
-          "-nic vmnet-shared,model=virtio-net-pci"
-        ];
       };
       boot.binfmt.emulatedSystems = [ "riscv64-linux" "armv7l-linux" "x86_64-linux" ];
       nix.settings = {
