@@ -29,5 +29,5 @@
   };
 
   # Work around the "prerequisite" of linux-builder.
-  nix.settings.trusted-users = lib.mkDefault [];
+  nix.settings.trusted-users = lib.mkDefault [ ];
 }

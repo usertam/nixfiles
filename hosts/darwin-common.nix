@@ -8,6 +8,7 @@
     ../programs/nix-no-gc.nix
     ../programs/zsh.nix
     ../services/darwin-builder.nix
+    ../services/openssh.nix
     ../services/tailscale.nix
   ];
 

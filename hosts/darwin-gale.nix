@@ -8,4 +8,7 @@
   ];
 
   environment.darwinConfig = "$HOME/Desktop/projects/nixfiles";
+
+  # Prohibit self-login via SSH.
+  users.sshUsers = [ ];
 }
