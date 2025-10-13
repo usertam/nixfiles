@@ -4,6 +4,7 @@
   # Original installation-cd-minimal-new-kernel incompatible with old ZFS release.
   imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
 
+  # Host identity.
   networking.hostName = lib.mkOverride 900 "generic-installer";
   system.nixos.tags = lib.mkOverride 900 [ "generic-installer" ];
 

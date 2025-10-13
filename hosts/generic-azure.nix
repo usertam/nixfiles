@@ -3,6 +3,7 @@
 {
   imports = [ "${modulesPath}/virtualisation/azure-image.nix" ];
 
+  # Host identity.
   networking.hostName = lib.mkOverride 900 "generic-azure";
   system.nixos.tags = lib.mkOverride 900 [ "generic-azure" ];
 
