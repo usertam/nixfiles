@@ -2,6 +2,7 @@
 
 {
   # Abstract over setting authorized keys. We reuse the same key anyway.
+  # Warning: this will allow self-login as root on systems with the key.
   options.users.sshUsers = lib.mkOption {
     type = with lib.types; listOf str;
     default = [ "root" ];

@@ -83,7 +83,7 @@
         "usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI="
         "cache.ztier.link-1:3P5j2ZB9dNgFFFVkCQWT3mh0E+S3rIWtZvoql64UaXM="
       ];
-      trusted-users = [ "root" "@nixadm" ];
+      trusted-users = [ "root" ];
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
       use-cgroups = true;
     };
@@ -92,7 +92,14 @@
   # Make sure nix is in system path.
   environment.systemPackages = [ config.nix.package ];
 
-  # Add a user group for trusted-users.
-  # $ sudo -g nixadm -s
-  users.groups."nixadm".gid = 351;
+  # TODO: Workaround of a nix-darwin bug on auto-allocate-uids.
+  # It first disables configureBuildUsers because auto-allocate-uids, which skips declaring the nixbld users/group.
+  # But then it later declares knownGroups and knownUsers to include nixbld users/group.
+  # What happens next is that it will try to state-manage (aka delete) the nixbld users/group, which is forbidden.
+  # The proper fix will be to create users.groups.nixbld unconditional, and allow deletion of nixbld users.
+  # But the hotfix for the assertions is that we just don't let nix-darwin manage/touch any users/groups.
+  users = lib.optionalAttrs pkgs.stdenv.isDarwin {
+    knownGroups = lib.mkForce [ ];
+    knownUsers = lib.mkForce [ ];
+  };
 }

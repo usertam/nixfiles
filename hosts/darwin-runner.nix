@@ -40,9 +40,5 @@
   ];
   nix.settings.auto-allocate-uids = true;
 
-  # Override ugly, stupid default crap.
-  users.knownUsers = lib.mkForce [ ];
-  users.knownGroups = lib.mkForce [ "nixadm" ];
-
   system.stateVersion = 5;
 }
