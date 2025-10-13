@@ -12,7 +12,6 @@
         ../programs/common.nix
         ../programs/nix.nix
         ../programs/nix-no-gc.nix
-        ../programs/ssh-key.nix
         ../programs/zsh.nix
       ];
       virtualisation = {

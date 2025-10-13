@@ -5,7 +5,6 @@
   imports = [
     ../programs/common.nix
     ../programs/nix.nix
-    ../programs/ssh-key.nix
     ../programs/zsh.nix
     ../services/openssh.nix
     ../services/rsyncd.nix
