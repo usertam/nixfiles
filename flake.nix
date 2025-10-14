@@ -5,52 +5,44 @@
     darwin.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, darwin, ... }@inputs: rec {
-    linuxPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.linux (system: rec {
+  outputs = { self, nixpkgs, darwin }@inputs: {
+    nixosFor = system: rec {
       # Common subset of all configurations, not meant to be used directly.
-      nixosConfigurations.common = nixpkgs.lib.nixosSystem {
+      common = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = { inherit inputs; };
         modules = [ ./hosts/common.nix ];
       };
 
       # Generic configurations that can be used out of the box or as base for custom ones.
-      nixosConfigurations.generic = nixpkgs.lib.recurseIntoAttrs {
-        azure = nixosConfigurations.common.extendModules {
-          modules = [ ./hosts/generic-azure.nix ];
-        };
-        docker = nixosConfigurations.common.extendModules {
-          modules = [ ./hosts/generic-docker.nix ];
-        };
-        installer = nixosConfigurations.common.extendModules {
-          modules = [ ./hosts/generic-installer.nix ];
-        };
+      generic = nixpkgs.lib.recurseIntoAttrs {
+        azure = common.extendModules { modules = [ ./hosts/generic-azure.nix ]; };
+        docker = common.extendModules { modules = [ ./hosts/generic-docker.nix ]; };
+        installer = common.extendModules { modules = [ ./hosts/generic-installer.nix ]; };
       };
 
-      nixosConfigurations.tsrvbld = nixosConfigurations.common.extendModules {
-        modules = [ ./hosts/tsrvbld.nix ];
-      };
+      tsrvbld = common.extendModules { modules = [ ./hosts/tsrvbld.nix ]; };
+      slate = common.extendModules { modules = [ ./hosts/slate.nix ]; };
+    };
 
-      nixosConfigurations.slate = nixosConfigurations.common.extendModules {
-        modules = [ ./hosts/slate.nix ];
-      };
-    });
-
-    darwinPackages = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.darwin (system: {
+    darwinFor = system: {
       # This is only used for GitHub Actions to bootstrap a darwin-builder.
-      darwinConfigurations.runner = darwin.lib.darwinSystem {
+      runner = darwin.lib.darwinSystem {
         inherit system;
         modules = [ ./hosts/darwin-runner.nix ];
       };
 
       # My configuration running on MacBook Air M2.
-      darwinConfigurations.gale = darwin.lib.darwinSystem {
+      gale = darwin.lib.darwinSystem {
         inherit system;
         specialArgs = { inherit inputs; };
         modules = [ ./hosts/darwin-gale.nix ];
       };
-    });
+    };
 
-    packages = linuxPackages // darwinPackages;
+    packages = with nixpkgs.lib; genAttrs systems.flakeExposed (system: {
+      nixosConfigurations = self.nixosFor system;
+      darwinConfigurations = self.darwinFor system;
+    });
   };
 }
