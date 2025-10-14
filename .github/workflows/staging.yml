@@ -1,6 +1,12 @@
 name: "Stage flakes updates"
 on:
   workflow_dispatch:
+    inputs:
+      discard-staging-changes:
+        description: 'Discard all staging branch changes (skip cherry-pick)'
+        required: true
+        type: boolean
+        default: false
   schedule:
   - cron: '0 0 * * MON'
 permissions:
@@ -29,6 +35,7 @@ jobs:
         GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}
     - uses: DeterminateSystems/nix-installer-action@main
     - name: Cherry-pick non-bot staging commits onto working master
+      if: inputs.discard-staging-changes != true
       run: |
         mapfile -t COMMITS < <(git rev-list origin/staging ^master \
           --perl-regexp --author='^(?!.*usertam-staging-bot).*' \
