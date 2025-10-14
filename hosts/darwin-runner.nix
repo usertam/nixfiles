@@ -40,5 +40,14 @@
   ];
   nix.settings.auto-allocate-uids = true;
 
+  # TODO: Workaround of a nix-darwin bug on auto-allocate-uids.
+  # It first disables configureBuildUsers because auto-allocate-uids, which skips declaring the nixbld users/group.
+  # But then it later declares knownGroups and knownUsers to include nixbld users/group.
+  # What happens next is that it will try to state-manage (aka delete) the nixbld users/group, which is forbidden.
+  # The proper fix will be to create users.groups.nixbld unconditional, and allow deletion of nixbld users.
+  # But the hotfix for the assertions is that we just don't let nix-darwin manage/touch any users/groups.
+  users.knownGroups = lib.mkForce [ ];
+  users.knownUsers = lib.mkForce [ ];
+
   system.stateVersion = 5;
 }

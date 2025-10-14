@@ -163,7 +163,7 @@ jobs:
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Switch to darwin-runner
       run: |
-        nix build .#darwinConfigurations.darwin-runner.config.system.build.toplevel
+        nix build .#darwinConfigurations.runner.config.system.build.toplevel
         sudo rm -rf /etc/nix/nix.conf /etc/nix/nix.custom.conf
         result/activate-user && sudo result/activate
         # Wait for the SSH server to be ready.

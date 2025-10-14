@@ -1,4 +1,4 @@
-{ config, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   imports = [ "${modulesPath}/virtualisation/docker-image.nix" ];
