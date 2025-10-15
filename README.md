@@ -19,16 +19,12 @@ curl -sL https://install.determinate.systems/nix | sh -s -- install
 ```
 Build the toplevel manually with `nix`, then activate by `switch-to-configuration`.
 ```
-nix build .#nixosConfigurations.generic.azure.config.system.build.toplevel
+nix build .#nixosConfigurations.slate.config.system.build.toplevel
 result/bin/switch-to-configuration switch
 ```
 ```sh
 # After initial activation, switch with:
-# nixos-rebuild switch --flake .#generic.azure
-```
-Tip: Build release images (.tar/iso/vhd/qcow2.zst) from configurations.
-```
-nix build .#nixosConfigurations.generic.{azure,docker,installer,oci}.config.system.build.release
+# nixos-rebuild switch --flake .#slate
 ```
 
 ### Darwin
@@ -47,8 +43,8 @@ result/activate-user && sudo result/activate
 # darwin-rebuild switch
 ```
 
-### Optionally with binary cache
-Tip: You can build things faster with the custom binary cache.
+### Want more speed?
+Build with the binary cache! Remember `--extra-substituters` to not replace cache.nixos.org.
 ```sh
 sudo nix build .#nixosConfigurations.generic.installer.config.system.build.toplevel \
   --extra-substituters 'https://usertam-nixfiles.cachix.org' \
@@ -56,39 +52,6 @@ sudo nix build .#nixosConfigurations.generic.installer.config.system.build.tople
 ```
 
 ## Maintenance
-```sh
-github:usertam/nixfiles
-├───linuxPackages
-│   ├───aarch64-linux
-│   │   └───nixosConfigurations
-│   │       ├───common: configuration 'nixos-system-usertam-25.05.20241227.7cc0bff'
-│   │       └───generic
-│   │           ├───azure: configuration 'nixos-system-usertam-azure-25.05.20241227.7cc0bff'
-│   │           │   ├───config.system.build.toplevel: derivation 'nixos-system-azure-usertam-azure-25.05.20241227.7cc0bff'
-│   │           │   └───config.system.build.release: derivation 'nixos-image-usertam-azure-25.05.20241227.7cc0bff-aarch64-linux'
-│   │           ├───docker: configuration 'nixos-system-usertam-docker-25.05.20241227.7cc0bff'
-│   │           │   ├───config.system.build.toplevel: derivation 'nixos-system-docker-usertam-docker-25.05.20241227.7cc0bff'
-│   │           │   └───config.system.build.release: derivation 'nixos-tarball-usertam-docker-25.05.20241227.7cc0bff-aarch64-linux'
-│   │           └───installer: configuration 'nixos-system-usertam-installer-25.05.20241227.7cc0bff'
-│   │               ├───config.system.build.toplevel: derivation 'nixos-system-installer-usertam-installer-25.05.20241227.7cc0bff'
-│   │               └──config.system.build.release: derivation 'nixos-image-usertam-installer-25.05.20241227.7cc0bff-aarch64-linux'
-│   ├───x86_64-linux────nixosConfigurations...
-│   └───riscv64-linux───nixosConfigurations...
-├───darwinPackages
-│   ├───aarch64-darwin
-│   │   └───darwinConfigurations
-│   │       ├───gale: configuration 'darwin-system-25.05.20241227.7cc0bff+darwin4.bc03f78'
-│   │       │   └───config.system.build.toplevel: derivation 'darwin-system-25.05.20241227.7cc0bff+darwin4.bc03f78'
-│   │       └───darwin-runner: configuration 'darwin-system-25.05.20241227.7cc0bff+darwin4.bc03f78'
-│   │           └───config.system.build.toplevel: derivation 'darwin-system-25.05.20241227.7cc0bff+darwin4.bc03f78'
-│   └───x86_64-darwin───darwinConfigurations...
-└───packages
-    ├───aarch64-linux...
-    ├───x86_64-linux...
-    ├───riscv64-linux...
-    ├───aarch64-darwin...
-    └───x86_64-darwin...
-```
 
 ### Update dependencies
 ```sh
