@@ -14,7 +14,7 @@ jobs:
     name: Make patch release
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      github.event.pull_request.user.login == 'usertam-staging-bot[bot]' &&
       github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
