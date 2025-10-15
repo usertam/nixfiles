@@ -46,8 +46,8 @@ jobs:
       if: contains(matrix.config, 'generic')
       run: |
         nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
-        find -L result -name '*.xz' -exec cp -a {} . \;
-        echo "artifact=$(ls *.xz | tee /dev/stderr)" >> "$GITHUB_ENV"
+        find -L result -name '*.zst' -exec cp -a {} . \;
+        echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:

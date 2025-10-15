@@ -41,7 +41,7 @@ jobs:
         gh run list --json databaseId,headSha,workflowName \
           --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run-id
         gh run download $(<run-id) --dir ./dist
-        gh release create ${{env.NEXT_VERSION}} --notes-from-tag ./dist/*/*.xz
+        gh release create ${{env.NEXT_VERSION}} --notes-from-tag ./dist/*/*.zst
   minor-release:
     name: Make minor release
     if: >-
@@ -57,4 +57,4 @@ jobs:
         gh run list --json databaseId,headSha,workflowName \
           --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run-id
         gh run download $(<run-id) --dir ./dist
-        gh release create ${{github.ref_name}} --notes-from-tag ./dist/*/*.xz
+        gh release create ${{github.ref_name}} --notes-from-tag ./dist/*/*.zst
