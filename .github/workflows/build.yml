@@ -24,6 +24,8 @@ jobs:
         config: [generic.installer, generic.docker]
         system: [x86_64-linux, aarch64-linux]
         include:
+        - config: slate
+          system: aarch64-linux
         - config: tsrvbld
           system: x86_64-linux
       fail-fast: false
@@ -60,6 +62,8 @@ jobs:
         config: [generic.installer, generic.docker]
         system: [x86_64-linux, aarch64-linux]
         include:
+        - config: slate
+          system: aarch64-linux
         - config: tsrvbld
           system: x86_64-linux
       fail-fast: false
