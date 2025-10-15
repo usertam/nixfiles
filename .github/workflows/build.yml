@@ -38,6 +38,7 @@ jobs:
       with:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles
@@ -167,6 +168,7 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
       with:
         mac-case-sensitive: true
+    - uses: DeterminateSystems/magic-nix-cache-action@main
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles
