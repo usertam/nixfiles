@@ -23,14 +23,14 @@ jobs:
       matrix:
         config: [ generic.installer, generic.docker ]
         system: [ x86_64-linux, aarch64-linux ]
-        release: [ true ]
+        artifact: [ release ]
         include:
         - config: slate
           system: aarch64-linux
-          release: true
+          artifact: release
         - config: tsrvbld
           system: x86_64-linux
-          release: false
+          artifact: false
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -45,10 +45,10 @@ jobs:
     - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
       run: |
         nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: Build ${{matrix.system}}.${{matrix.config}}.release
-      if: matrix.release == true
+    - name: Build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
+      if: matrix.artifact != false
       run: |
-        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
         find -L result -name '*.zst' -exec cp -a {} . \;
         echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
@@ -64,14 +64,14 @@ jobs:
       matrix:
         config: [ generic.installer, generic.docker ]
         system: [ x86_64-linux, aarch64-linux ]
-        release: [ true ]
+        artifact: [ release ]
         include:
         - config: slate
           system: aarch64-linux
-          release: true
+          artifact: release
         - config: tsrvbld
           system: x86_64-linux
-          release: false
+          artifact: false
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -112,11 +112,11 @@ jobs:
       run: |
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: First build ${{matrix.system}}.${{matrix.config}}.release
-      if: matrix.release == true
+    - name: First build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
+      if: matrix.artifact != false
       run: |
         sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
     - name: Bind mount /nix -> /overlay/b/nix
       run: |
         sudo systemctl stop nix-daemon
@@ -128,11 +128,11 @@ jobs:
       run: |
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: Second build ${{matrix.system}}.${{matrix.config}}.release
-      if: matrix.release == true
+    - name: Second build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
+      if: matrix.artifact != false
       run: |
         sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
     - name: Remove bind mounts on /nix
       run: |
         sudo systemctl stop nix-daemon
