@@ -21,13 +21,16 @@ jobs:
     name: Build Linux
     strategy:
       matrix:
-        config: [generic.installer, generic.docker]
-        system: [x86_64-linux, aarch64-linux]
+        config: [ generic.installer, generic.docker ]
+        system: [ x86_64-linux, aarch64-linux ]
+        release: [ true ]
         include:
         - config: slate
           system: aarch64-linux
+          release: true
         - config: tsrvbld
           system: x86_64-linux
+          release: false
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -43,7 +46,7 @@ jobs:
       run: |
         nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: Build ${{matrix.system}}.${{matrix.config}}.release
-      if: contains(matrix.config, 'generic')
+      if: matrix.release == true
       run: |
         nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.zst' -exec cp -a {} . \;
@@ -59,13 +62,16 @@ jobs:
     if: github.event_name == 'schedule' || inputs.do-determinism-check == true
     strategy:
       matrix:
-        config: [generic.installer, generic.docker]
-        system: [x86_64-linux, aarch64-linux]
+        config: [ generic.installer, generic.docker ]
+        system: [ x86_64-linux, aarch64-linux ]
+        release: [ true ]
         include:
         - config: slate
           system: aarch64-linux
+          release: true
         - config: tsrvbld
           system: x86_64-linux
+          release: false
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -107,7 +113,7 @@ jobs:
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: First build ${{matrix.system}}.${{matrix.config}}.release
-      if: contains(matrix.config, 'generic')
+      if: matrix.release == true
       run: |
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
@@ -123,7 +129,7 @@ jobs:
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: Second build ${{matrix.system}}.${{matrix.config}}.release
-      if: contains(matrix.config, 'generic')
+      if: matrix.release == true
       run: |
         sudo $(which nix) build -L \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
