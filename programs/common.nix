@@ -5,5 +5,6 @@
     btop
     file
     git
+    (if pkgs.stdenv.isDarwin then ghostty-bin else ghostty).terminfo
   ];
 }
