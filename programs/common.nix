@@ -5,6 +5,5 @@
     btop
     file
     git
-    kitty.terminfo
   ];
 }
