@@ -7,7 +7,7 @@
     ./darwin-common.nix
   ];
 
-  environment.darwinConfig = "$HOME/Desktop/projects/nixfiles";
+  environment.darwinConfig = "/Users/tam/Desktop/projects/nixfiles";
 
   # Prohibit self-login via SSH.
   users.sshUsers = [ ];

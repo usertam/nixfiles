@@ -60,19 +60,16 @@
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
-      http-connections = 0;                 # Uncap parallel TCP connections.
-      max-substitution-jobs = 128;          # This is 8x the default.
-      download-buffer-size = 536870912;     # 512 MiB.
-      eval-cores = 0;                       # For detsys nix only; enable parallel evaluation.
-      lazy-trees = true;                    # For detsys nix only.
-      substituters = [
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"  # provide cuda and unfree-redistributable packages
-        "https://cache.ztier.in"            # provide riscv64-linux packages
-      ];
+      http-connections = 0;                   # Uncap parallel TCP connections.
+      max-substitution-jobs = 128;            # This is 8x the default.
+      download-buffer-size = 536870912;       # 512 MiB.
+      eval-cores = 0;                         # For detsys nix only; enable parallel evaluation.
+      lazy-trees = true;                      # For detsys nix only.
       trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
+        "https://nix-community.cachix.org"    # provide cuda and unfree-redistributable packages
+        "https://cache.ztier.in"              # provide riscv64-linux packages
+        "https://usertam-nixfiles.cachix.org" # provide github runner populated cache
         "https://context-minimals.cachix.org"
-        "https://usertam-nixfiles.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
