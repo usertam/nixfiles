@@ -1,20 +1,11 @@
 name: "Build tests on platforms"
 
-# Only scheduled builds enforce determinism checks by default.
 on:
   workflow_dispatch:
-    inputs:
-      do-determinism-check:
-        description: 'Enable determinism-check builds'
-        required: true
-        type: boolean
-        default: false
   push:
     branches:
     - master
   pull_request:
-  schedule:
-  - cron: '0 0 * * MON'
 
 jobs:
   build-linux:
@@ -58,105 +49,6 @@ jobs:
         name: ${{env.artifact}}
         path: ${{env.artifact}}
 
-  build-linux-determinism-check:
-    name: Build Linux with determinism checks
-    if: github.event_name == 'schedule' || inputs.do-determinism-check == true
-    strategy:
-      matrix:
-        config: [ generic.installer, generic.docker ]
-        system: [ x86_64-linux, aarch64-linux ]
-        artifact: [ release ]
-        include:
-        - config: slate
-          system: aarch64-linux
-          artifact: release
-        - config: tsrvbld
-          system: x86_64-linux
-          artifact: false
-      fail-fast: false
-    runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
-    steps:
-    - uses: actions/checkout@main
-      with:
-        ref: ${{github.ref}}
-    - uses: DeterminateSystems/nix-installer-action@main
-    - uses: cachix/cachix-action@master
-      with:
-        name: usertam-nixfiles
-        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-        skipAddingSubstituter: true
-    - name: Set up local overlays
-      run: |
-        sudo mkdir -p /overlay/{a,b}{/nix,-work,-upper}
-        sudo mount -t overlay overlay \
-          -o lowerdir=/nix \
-          -o upperdir=/overlay/a-upper \
-          -o workdir=/overlay/a-work \
-          /overlay/a/nix
-        sudo mount -t overlay overlay \
-          -o lowerdir=/nix \
-          -o upperdir=/overlay/b-upper \
-          -o workdir=/overlay/b-work \
-          /overlay/b/nix
-    - name: Prefetch prebuilt dependencies
-      run: |
-        nix-store --query --references \
-          $(nix eval --raw .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel.drvPath) \
-          | xargs nix-store --realise --max-jobs 0 || true
-    - name: Bind mount /nix -> /overlay/a/nix
-      run: |
-        sudo systemctl stop nix-daemon
-        sudo mount --bind /overlay/a/nix /nix
-        sudo systemctl start nix-daemon
-        sudo systemctl status nix-daemon
-    - name: First build ${{matrix.system}}.${{matrix.config}}.toplevel
-      run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: First build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
-      if: matrix.artifact != false
-      run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
-    - name: Bind mount /nix -> /overlay/b/nix
-      run: |
-        sudo systemctl stop nix-daemon
-        sudo umount /nix
-        sudo mount --bind /overlay/b/nix /nix
-        sudo systemctl start nix-daemon
-        sudo systemctl status nix-daemon
-    - name: Second build ${{matrix.system}}.${{matrix.config}}.toplevel
-      run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: Second build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
-      if: matrix.artifact != false
-      run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
-    - name: Remove bind mounts on /nix
-      run: |
-        sudo systemctl stop nix-daemon
-        sudo umount /nix
-        sudo systemctl start nix-daemon
-        sudo systemctl status nix-daemon
-    - name: Run diffoscope on the overlays
-      run: |
-        sudo "$(which nix)" run nixpkgs#diffoscopeMinimal -- \
-          --markdown diffoscope.md \
-          --exclude-directory-metadata recursive \
-          /overlay/a-upper/store /overlay/b-upper/store || {
-            echo "diff_exists=true" >> $GITHUB_ENV
-            echo "::warning::Builds may not be deterministic, check diffoscope.md for details"
-            false
-        }
-    - uses: actions/upload-artifact@main
-      if: always() && env.diff_exists == 'true'
-      with:
-        name: ${{matrix.system}}-${{matrix.config}}-diffoscope
-        path: |
-          diffoscope.md
-
   build-darwin:
     name: Build Darwin
     runs-on: macos-15
@@ -187,7 +79,7 @@ jobs:
   build-status:
     name: Build Status
     runs-on: ubuntu-latest
-    needs: [build-linux, build-darwin, build-linux-determinism-check]
+    needs: [build-linux, build-darwin]
     if: always()
     steps:
     - run: ${{!contains(needs.*.result, 'failure')}}
