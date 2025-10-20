@@ -144,7 +144,6 @@ jobs:
       run: |
         sudo "$(which nix)" run nixpkgs#diffoscopeMinimal -- \
           --markdown diffoscope.md \
-          --status-fd 2 \
           --exclude-directory-metadata recursive \
           /overlay/a-upper/store /overlay/b-upper/store || {
             echo "diff_exists=true" >> $GITHUB_ENV
