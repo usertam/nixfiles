@@ -1,50 +1,45 @@
 # nixfiles
 
-[![Build Image](https://github.com/usertam/nixfiles/actions/workflows/build.yml/badge.svg)](https://github.com/usertam/nixfiles/actions/workflows/build.yml)
+[![Build Image](https://github.com/usertam/nixfiles/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/usertam/nixfiles/actions/workflows/build.yml)
 
 A set of opinionated configurations to both `NixOS` and `nix-darwin`. Home environment is managed with [usertam/nixfiles-home](https://github.com/usertam/nixfiles-home).
 
-## Clone configuration
+## Prerequisites: Install Nix
+
+If Nix is not installed, run the install script at `https://artifacts.nixos.org/experimental-installer` from [NixOS/experimental-nix-installer](https://github.com/NixOS/experimental-nix-installer). It's an upstream fork of [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer).
+
+For Linux:
 ```sh
-git clone git@github.com:usertam/nixfiles.git ~/Desktop/projects/nixfiles
-cd ~/Desktop/projects/nixfiles
+curl -sSfL https://artifacts.nixos.org/experimental-installer | sh -s -- install
+```
+
+For Darwin, to set up a case-sensitive volume:
+```sh
+curl -sSfL https://artifacts.nixos.org/experimental-installer | sh -s -- install macos --case-sensitive
 ```
 
 ## Activation
 
 ### Linux
-If Nix is not installed, use [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer).
-```sh
-curl -sL https://install.determinate.systems/nix | sh -s -- install
-```
-Build the toplevel manually with `nix`, then activate by `switch-to-configuration`.
+Manually build the system toplevel derivation, then activate by `switch-to-configuration`.  
+Using `nixosConfigurations.slate` as example:
 ```
 nix build .#nixosConfigurations.slate.config.system.build.toplevel
-result/bin/switch-to-configuration switch
+sudo result/bin/switch-to-configuration switch
 ```
-```sh
-# After initial activation, switch with:
-# nixos-rebuild switch --flake .#slate
-```
+You may `sudo nixos-rebuild switch --flake .#slate` after initial activation.
 
 ### Darwin
-If Nix is not installed, use [DeterminateSystems/nix-installer](https://github.com/DeterminateSystems/nix-installer). Make sure to set up a case-sensitive volume.
-```sh
-curl -sL https://install.determinate.systems/nix | \
-  sh -s -- install macos --case-sensitive
-```
-Build the toplevel manually with `nix`, then run two activation scripts.
+Manually build the system toplevel derivation, then `sudo` the activation script.  
+Using `darwinConfigurations.gale` as example:
 ```
 nix build .#darwinConfigurations.gale.config.system.build.toplevel
-result/activate-user && sudo result/activate
+sudo result/activate
 ```
-```sh
-# After initial activation, switch with:
-# darwin-rebuild switch
-```
+You may `sudo darwin-rebuild switch` after initial activation.
 
 ### Want more speed?
-Build with the binary cache! Remember `--extra-substituters` to not replace cache.nixos.org.
+Build with binary cache! Remember `--EXTRA-substituters` to not replace `cache.nixos.org`.
 ```sh
 sudo nix build .#nixosConfigurations.generic.installer.config.system.build.toplevel \
   --extra-substituters 'https://usertam-nixfiles.cachix.org' \
@@ -53,7 +48,7 @@ sudo nix build .#nixosConfigurations.generic.installer.config.system.build.tople
 
 ## Maintenance
 
-### Update dependencies
+### Bump dependencies
 ```sh
 nix flake metadata
 nix flake update --commit-lock-file
@@ -75,6 +70,12 @@ nix-repl> :b packages.aarch64-darwin.darwinConfigurations.gale.config.services.t
 ```
 nix eval .#packages.aarch64-linux.nixosConfigurations.generic.docker.config.system.nixos.label
 nix eval --apply builtins.attrNames .#darwinConfigurations.gale.config.system.build.toplevel
+
+# Or, if you need full-fledged nix magic:
+nix eval --impure --expr '
+  with builtins.getFlake (toString ./.);
+  builtins.attrNames packages.aarch64-darwin.darwinConfigurations.gale.config.system.build.toplevel
+'
 ```
 
 ## License
