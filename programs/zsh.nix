@@ -25,7 +25,7 @@
   }
   // lib.optionalAttrs pkgs.stdenv.isDarwin {
     # Manually install zsh-autosuggestions.
-    interactiveShellInit = lib.mkIf pkgs.stdenv.isDarwin ''
+    interactiveShellInit = ''
       source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
     '';
   };
