@@ -21,6 +21,7 @@ jobs:
     - uses: actions/checkout@main
       with:
         fetch-tags: true
+        fetch-depth: 0
     - name: Bump the patch version
       run: |
         PREV_VERSION=$(git describe --tags --abbrev=0)
