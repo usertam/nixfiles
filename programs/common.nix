@@ -5,7 +5,6 @@
     btop
     file
     git
-    tmux
     (if stdenv.isDarwin then ghostty-bin else ghostty).terminfo
   ];
 }

@@ -6,6 +6,7 @@
     ../programs/common.nix
     ../programs/nix.nix
     ../programs/nix-no-gc.nix
+    ../programs/tmux.nix
     ../programs/zsh.nix
     ../services/darwin-builder.nix
     ../services/openssh.nix
