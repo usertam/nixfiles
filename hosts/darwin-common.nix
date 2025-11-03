@@ -14,7 +14,7 @@
 
   # Override darwin-rebuild in systemPackages.
   environment.systemPackages = lib.singleton (pkgs.runCommand "darwin-rebuild" {
-    src = [ inputs.darwin.packages.${pkgs.system}.darwin-rebuild ];
+    src = [ inputs.darwin.packages.${pkgs.stdenv.hostPlatform.system}.darwin-rebuild ];
     meta.priority = -10;
   } ''
     cp -a $src $out
