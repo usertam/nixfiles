@@ -4,6 +4,7 @@
   programs.zsh = {
     enable = true;
     enableCompletion = true;
+    # TODO: use interactiveShellInit, not promptInit.
     promptInit = ''
       export HISTSIZE=1000000000
       export SAVEHIST=1000000000
@@ -14,6 +15,9 @@
 
       export LESS='-FiR'
       local CORRECT_IGNORE='[_|.]*'
+
+      # Original programs.zsh.promptInit. Changed to off.
+      autoload -U promptinit && promptinit && prompt off && setopt prompt_sp
     ''
     + builtins.concatStringsSep "\n" (
       map (x: "alias -- ${x}='${x} --color=auto'")
