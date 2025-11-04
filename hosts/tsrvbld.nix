@@ -32,9 +32,9 @@
     };
   };
 
-  # We need vagrant, virtualbox and docker to spawn TrustedServer mocks.
+  # We need vagrant, virtualbox and docker/earthly to spawn TrustedServer mocks.
   nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "vagrant" ];
-  environment.systemPackages = with pkgs; [ vagrant sshpass ];
+  environment.systemPackages = with pkgs; [ vagrant sshpass earthly ];
   virtualisation = {
     docker.enable = true;
     virtualbox.host.enable = true;
