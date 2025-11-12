@@ -35,13 +35,39 @@ jobs:
           echo "Invalid version format: $PREV_VERSION" >&2
           exit 1
         fi
-    - name: Locate the latest run, download artifacts and create release
+    - name: Wait for artifacts from ${{github.sha}}
       env:
         GH_TOKEN: ${{github.token}}
       run: |
-        gh run list --json databaseId,headSha,workflowName \
-          --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run-id
-        gh run download $(<run-id) --dir ./dist
+        mkdir -p ./dist
+        deadline=$(( $(date +%s) + 7200 ))
+        while :; do
+          printf "Checking run: "
+          gh run list --json databaseId,headSha,workflowName \
+            --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run_id
+          run_id=$(<run_id)
+          if [ -n "$run_id" ]; then
+            status=$(gh api repos/${{github.repository}}/actions/runs/$run_id --jq .status || echo "")
+            conclusion=$(gh api repos/${{github.repository}}/actions/runs/$run_id --jq .conclusion || echo "")
+            if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
+              echo "::error::Run $run_id completed with conclusion $conclusion"
+              false
+            fi
+            gh run download "$run_id" --dir ./dist
+            break
+          fi
+          if [ "$(date +%s)" -le "$deadline" ]; then
+            echo "Waiting for artifacts from run $run_id..."
+            sleep 300
+          else
+            echo "::error::Timed out after 2 hours waiting for artifacts."
+            false
+          fi
+        done
+    - name: Create release
+      env:
+        GH_TOKEN: ${{github.token}}
+      run: |
         gh release create ${{env.NEXT_VERSION}} --notes-from-tag ./dist/*/*.zst
   minor-release:
     name: Make minor release
@@ -51,11 +77,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
-    - name: Locate the latest run, download artifacts and create release
+    - name: Wait for artifacts from ${{github.sha}}
       env:
         GH_TOKEN: ${{github.token}}
       run: |
-        gh run list --json databaseId,headSha,workflowName \
-          --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run-id
-        gh run download $(<run-id) --dir ./dist
+        mkdir -p ./dist
+        deadline=$(( $(date +%s) + 7200 ))
+        while :; do
+          printf "Checking run: "
+          gh run list --json databaseId,headSha,workflowName \
+            --jq '.[] | select(.headSha == "${{github.sha}}" and .workflowName == "Build tests on platforms") | .databaseId' | head -1 | tee run_id
+          run_id=$(<run_id)
+          if [ -n "$run_id" ]; then
+            status=$(gh api repos/${{github.repository}}/actions/runs/$run_id --jq .status || echo "")
+            conclusion=$(gh api repos/${{github.repository}}/actions/runs/$run_id --jq .conclusion || echo "")
+            if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
+              echo "::error::Run $run_id completed with conclusion $conclusion"
+              false
+            fi
+            gh run download "$run_id" --dir ./dist
+            break
+          fi
+          if [ "$(date +%s)" -le "$deadline" ]; then
+            echo "Waiting for artifacts from run $run_id..."
+            sleep 300
+          else
+            echo "::error::Timed out after 2 hours waiting for artifacts."
+            false
+          fi
+        done
+    - name: Create release
+      env:
+        GH_TOKEN: ${{github.token}}
+      run: |
         gh release create ${{github.ref_name}} --notes-from-tag ./dist/*/*.zst
