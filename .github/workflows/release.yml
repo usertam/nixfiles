@@ -52,9 +52,10 @@ jobs:
             if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
               echo "::error::Run $run_id completed with conclusion $conclusion"
               false
+            else if [ "$status" = "completed" ]; then
+              gh run download "$run_id" --dir ./dist
+              break
             fi
-            gh run download "$run_id" --dir ./dist
-            break
           fi
           if [ "$(date +%s)" -le "$deadline" ]; then
             echo "Waiting for artifacts from run $run_id..."
@@ -94,9 +95,10 @@ jobs:
             if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
               echo "::error::Run $run_id completed with conclusion $conclusion"
               false
+            else if [ "$status" = "completed" ]; then
+              gh run download "$run_id" --dir ./dist
+              break
             fi
-            gh run download "$run_id" --dir ./dist
-            break
           fi
           if [ "$(date +%s)" -le "$deadline" ]; then
             echo "Waiting for artifacts from run $run_id..."
