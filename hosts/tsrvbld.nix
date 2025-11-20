@@ -32,9 +32,7 @@
     };
   };
 
-  # We need vagrant, virtualbox and docker/earthly to spawn TrustedServer mocks.
-  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "vagrant" ];
-  environment.systemPackages = with pkgs; [ vagrant sshpass earthly ];
+  # Special options to flip for docker daemon and virtualbox kernel modules.
   virtualisation = {
     docker.enable = true;
     virtualbox.host.enable = true;
@@ -42,6 +40,19 @@
 
   # VirtualBox needs this to allow host-only ranges.
   environment.etc."vbox/networks.conf".text = "* 0.0.0.0/0 ::/0";
+
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+    "claude-code"
+    "vagrant"
+  ];
+
+  environment.systemPackages = with pkgs; [
+    claude-code
+    docker
+    earthly
+    gnupg
+    vagrant
+  ];
 
   # Cross-arch building support with binfmt and qemu.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];
