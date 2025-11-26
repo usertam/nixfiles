@@ -27,6 +27,8 @@ jobs:
       with:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
+      with:
+        determinate: false
     - uses: cachix/cachix-action@master
       with:
         name: usertam-nixfiles

@@ -34,6 +34,8 @@ jobs:
       env:
         GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}
     - uses: DeterminateSystems/nix-installer-action@main
+      with:
+        determinate: false
     - name: Cherry-pick non-bot staging commits onto working master
       if: inputs.discard-staging-changes != true
       run: |

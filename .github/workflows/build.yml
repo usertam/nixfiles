@@ -29,6 +29,8 @@ jobs:
       with:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
+      with:
+        determinate: false
     - uses: DeterminateSystems/magic-nix-cache-action@main
     - uses: cachix/cachix-action@master
       with:
@@ -58,6 +60,7 @@ jobs:
         ref: ${{github.ref}}
     - uses: DeterminateSystems/nix-installer-action@main
       with:
+        determinate: false
         mac-case-sensitive: true
     - uses: DeterminateSystems/magic-nix-cache-action@main
     - uses: cachix/cachix-action@master
