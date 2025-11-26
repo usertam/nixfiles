@@ -52,7 +52,7 @@ jobs:
             if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
               echo "::error::Run $run_id completed with conclusion $conclusion"
               false
-            else if [ "$status" = "completed" ]; then
+            elif [ "$status" = "completed" ]; then
               gh run download "$run_id" --dir ./dist
               break
             fi
@@ -95,7 +95,7 @@ jobs:
             if [ "$status" = "completed" ] && [ "$conclusion" != "success" ]; then
               echo "::error::Run $run_id completed with conclusion $conclusion"
               false
-            else if [ "$status" = "completed" ]; then
+            elif [ "$status" = "completed" ]; then
               gh run download "$run_id" --dir ./dist
               break
             fi
