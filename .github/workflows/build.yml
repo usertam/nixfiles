@@ -70,8 +70,8 @@ jobs:
     - name: Switch to darwin-runner
       run: |
         nix build .#darwinConfigurations.runner.config.system.build.toplevel
-        sudo rm -rf /etc/nix/nix.conf /etc/nix/nix.custom.conf
-        result/activate-user && sudo result/activate
+        sudo rm -f /etc/nix/nix.conf /etc/nix/nix.custom.conf /etc/zshenv
+        sudo result/activate
         # Wait for the SSH server to be ready.
         # kex_exchange_identification: read: Connection reset by peer
         until sudo ssh -o StrictHostKeyChecking=no builder@localhost -p 31022 -i /etc/nix/builder_ed25519 cat /proc/version; do sleep 10; done
