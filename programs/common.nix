@@ -4,7 +4,6 @@
   environment.systemPackages = with pkgs; [
     bind # dig, nslookup
     btop
-    ethtool
     file
     git
     iperf3
@@ -12,6 +11,10 @@
     socat
     tmux
     wireguard-tools
-    (if stdenv.isDarwin then ghostty-bin else ghostty).terminfo
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    ethtool
+    ghostty.terminfo
+  ] ++ lib.optionals pkgs.stdenv.isDarwin [
+    ghostty-bin.terminfo
   ];
 }
