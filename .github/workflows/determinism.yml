@@ -34,6 +34,12 @@ jobs:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
         skipAddingSubstituter: true
+    - name: Set up swap
+      run: |
+        sudo fallocate -l 10G /swapfile
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
     - name: Set up local overlays
       run: |
         sudo mkdir -p /overlay/{a,b}{/nix,-work,-upper}
