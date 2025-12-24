@@ -3,9 +3,11 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     darwin.url = "github:lnl7/nix-darwin/master";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
+    lanzaboote.url = "github:nix-community/lanzaboote/v1.0.0";
+    lanzaboote.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, darwin }@inputs: {
+  outputs = { self, nixpkgs, darwin, ... }@inputs: {
     nixosFor = system: rec {
       # Common subset of all configurations, not meant to be used directly.
       common = nixpkgs.lib.nixosSystem {
@@ -23,6 +25,7 @@
 
       tsrvbld = common.extendModules { modules = [ ./hosts/tsrvbld.nix ]; };
       slate = common.extendModules { modules = [ ./hosts/slate.nix ]; };
+      nova = common.extendModules { modules = [ ./hosts/nova.nix ]; };
     };
 
     darwinFor = system: {

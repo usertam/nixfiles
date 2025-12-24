@@ -17,6 +17,9 @@ jobs:
         - config: slate
           system: aarch64-linux
           artifact: release
+        - config: nova
+          system: x86_64-linux
+          artifact: false
         - config: tsrvbld
           system: x86_64-linux
           artifact: false
