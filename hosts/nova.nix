@@ -66,4 +66,37 @@
     wifi.backend = "iwd";
     dns = "systemd-resolved";
   };
+
+  # Enable NFS on tailscale.
+  services.nfs.server = {
+    enable = true;
+    exports = ''
+      /srv/tank 100.64.0.0/10(rw,no_subtree_check)
+    '';
+  };
+
+  # Enable qBittorrent, limit WebUI to tailscale.
+  services.qbittorrent = {
+    enable = true;
+    serverConfig = {
+      LegalNotice.Accepted = true;
+      BitTorrent.Session = {
+        DefaultSavePath = "/srv/tank/multiverse";
+        DisableAutoTMMTriggers.CategorySavePathChanged = false;
+        DisableAutoTMMTriggers.DefaultSavePathChanged = false;
+        MaxUploads = 32;
+        MaxUploadsPerTorrent = 16;
+        QueueingSystemEnabled = false;
+        IgnoreLimitsOnLAN = true;
+        uTPRateLimited = false;
+      };
+      Preferences = {
+        WebUI = {
+          AuthSubnetWhitelist = "100.64.0.0/10";
+          AuthSubnetWhitelistEnabled = true;
+        };
+        General.Locale = "en";
+      };
+    };
+  };
 }
