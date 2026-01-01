@@ -13,14 +13,15 @@
   services.getty.autologinUser = lib.mkForce "root";
   services.getty.helpLine = lib.mkForce ''
 
-    At last! You have reached the tty of a newly booted up installer image.
+    You have reached the TTY of a fresh booted installer image.
 
-    Any of the installed keys will log you in as root:
-    ${pkgs.lib.concatMapStringsSep "\n" (key: "    - ${key}") config.users.users.root.openssh.authorizedKeys.keys}
+    Any of the SSH keys below should log you in as root:
+    ${pkgs.lib.concatMapStringsSep "\n" (key: "- ${key}") config.users.users.root.openssh.authorizedKeys.keys}
 
-    Mount your disks, maybe run `nixos-generate-config`, then `nixos-install --flake <uri>`.
+    Mount your disks, run `nixos-generate-config`, finally `nixos-install --flake <uri>`.
 
-    Door's open, bed's made. Welcome home.
+    Door's open, bed's made.
+    Welcome home.
   '';
 
   # Mirror this repo to installer's /etc/nixos.
