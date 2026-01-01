@@ -87,7 +87,7 @@
         DefaultSavePath = "/srv/tank/multiverse";
         DisableAutoTMMTriggers.CategorySavePathChanged = false;
         DisableAutoTMMTriggers.DefaultSavePathChanged = false;
-        MaxUploads = 32;
+        MaxUploads = 16;
         MaxUploadsPerTorrent = 16;
         QueueingSystemEnabled = false;
         IgnoreLimitsOnLAN = true;
