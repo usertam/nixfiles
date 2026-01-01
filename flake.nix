@@ -18,11 +18,10 @@
 
       # Generic configurations that can be used out of the box or as base for custom ones.
       generic = nixpkgs.lib.recurseIntoAttrs {
-        azure = common.extendModules { modules = [ ./hosts/generic-azure.nix ]; };
         docker = common.extendModules { modules = [ ./hosts/generic-docker.nix ]; };
-        installer = common.extendModules { modules = [ ./hosts/generic-installer.nix ]; };
       };
 
+      installer = common.extendModules { modules = [ ./hosts/installer.nix ]; };
       tsrvbld = common.extendModules { modules = [ ./hosts/tsrvbld.nix ]; };
       slate = common.extendModules { modules = [ ./hosts/slate.nix ]; };
       nova = common.extendModules { modules = [ ./hosts/nova.nix ]; };

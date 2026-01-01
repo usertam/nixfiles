@@ -41,7 +41,7 @@ You may `sudo darwin-rebuild switch` after initial activation.
 ### Want more speed?
 Build with binary cache! Remember `--EXTRA-substituters` to not replace `cache.nixos.org`.
 ```sh
-sudo nix build .#nixosConfigurations.generic.installer.config.system.build.toplevel \
+sudo nix build .#nixosConfigurations.installer.config.system.build.toplevel \
   --extra-substituters 'https://usertam-nixfiles.cachix.org' \
   --extra-trusted-public-keys 'usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI='
 ```
