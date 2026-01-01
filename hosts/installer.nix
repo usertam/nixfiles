@@ -7,8 +7,8 @@
   ];
 
   # Host identity.
-  networking.hostName = lib.mkOverride 900 "installer";
-  system.nixos.tags = lib.mkOverride 900 [ "installer" ];
+  networking.hostName = "installer";
+  system.nixos.tags = [ "installer" ];
 
   services.getty.autologinUser = lib.mkForce "root";
   services.getty.helpLine = lib.mkForce ''
@@ -23,9 +23,6 @@
     Door's open, bed's made.
     Welcome home.
   '';
-
-  # Mirror this repo to installer's /etc/nixos.
-  environment.etc."nixos".source = ./..;
 
   # Make release image.
   isoImage.compressImage = true;

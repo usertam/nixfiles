@@ -18,6 +18,10 @@
   # Define global user defaults.
   users.mutableUsers = false;
 
+  # Link this repo read-only to /etc/nixos, assume image-based provisions.
+  # Set environment.etc."nixos".enable = false for manual edits and switches.
+  environment.etc."nixos".source = ./..;
+
   # Set default login user root.
   services.getty.autologinUser = lib.mkDefault "root";
 

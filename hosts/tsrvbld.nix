@@ -32,6 +32,9 @@
     };
   };
 
+  # We manually provision /etc/nixos on this host, not image-based.
+  environment.etc."nixos".enable = false;
+
   # Special options to flip for docker daemon and virtualbox kernel modules.
   virtualisation = {
     docker.enable = true;

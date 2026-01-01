@@ -59,6 +59,9 @@
     };
   };
 
+  # We manually provision /etc/nixos on this host, not image-based.
+  environment.etc."nixos".enable = false;
+
   # Enable NetworkManager, iwd and systemd-resolved.
   services.resolved.enable = true;
   networking.networkmanager = {
