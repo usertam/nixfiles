@@ -12,19 +12,28 @@ jobs:
     name: Build Linux
     strategy:
       matrix:
-        config: [ generic.docker, installer ]
-        system: [ x86_64-linux, aarch64-linux ]
-        artifact: [ release ]
         include:
+        - config: generic.docker
+          system: x86_64-linux
+          extras: [ release ]
+        - config: generic.docker
+          system: aarch64-linux
+          extras: [ release ]
+        - config: installer
+          system: x86_64-linux
+          extras: [ release, vm ]
+        - config: installer
+          system: aarch64-linux
+          extras: [ release, vm ]
         - config: slate
           system: aarch64-linux
-          artifact: release
+          extras: [ release, vm ]
         - config: nova
           system: x86_64-linux
-          artifact: false
+          extras: [ vm ]
         - config: tsrvbld
           system: x86_64-linux
-          artifact: false
+          extras: [ vm ]
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -39,13 +48,17 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Build ${{matrix.system}}.${{matrix.config}}.toplevel
+    - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       run: |
         nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
-    - name: Build ${{matrix.system}}.${{matrix.config}}.${{matrix.artifact}}
-      if: matrix.artifact != false
+    - name: Build vm for ${{matrix.system}}.${{matrix.config}}
+      if: contains(matrix.extras, 'vm')
       run: |
-        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.${{matrix.artifact}}
+        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
+    - name: Build release for ${{matrix.system}}.${{matrix.config}}
+      if: contains(matrix.extras, 'release')
+      run: |
+        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.zst' -exec cp -a {} . \;
         echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
