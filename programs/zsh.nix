@@ -33,8 +33,12 @@
       autoload -U promptinit && promptinit && prompt off && setopt prompt_sp
     ''
     + builtins.concatStringsSep "\n" (
-      map (x: "alias -- ${x}='${x} --color=auto'")
-        [ "diff" "grep" "ls" ]
+      map (x: "alias -- ${x}='${x} --color=auto'") [
+        "diff" "grep" "ls"
+      ]
+      ++ map (x: "alias -- t${x}='tmux new-session -A -s ${x}'") [
+        "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
+      ]
     );
   }
   // lib.optionalAttrs pkgs.stdenv.isLinux {

@@ -121,4 +121,5 @@
   services.displayManager.gdm.autoSuspend = false;
   services.logind.settings.Login.HandleLidSwitch = "ignore";
   systemd.targets.suspend.enable = false;
+  powerManagement.enable = false;
 }
