@@ -7,6 +7,7 @@
     # Honor the choice on services.tailscale.package.
     package = config.services.tailscale.package.derper;
     domain = "derp.usertam.dev" + " -stun=false"; # Hack to disable STUN.
+    configureNginx = false;
   };
 
   # Enable coturn server, replacing tailscale's built-in one.

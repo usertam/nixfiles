@@ -23,6 +23,8 @@
         tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
         slate = withModules [ ./hosts/slate.nix ];
         nova = withModules [ ./hosts/nova.nix ];
+        castor = withModules [ ./hosts/castor.nix ];
+        pollux = withModules [ ./hosts/pollux.nix ];
       };
 
       darwinConfigurations = let

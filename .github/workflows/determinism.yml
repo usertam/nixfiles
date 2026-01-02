@@ -32,6 +32,18 @@ jobs:
         - config: tsrvbld
           system: x86_64-linux
           builds: [ toplevel, vm ]
+        - config: castor
+          system: aarch64-linux
+          builds: [ toplevel, release ]
+        - config: castor
+          system: x86_64-linux
+          builds: [ toplevel, release ]
+        - config: pollux
+          system: aarch64-linux
+          builds: [ toplevel, release ]
+        - config: pollux
+          system: x86_64-linux
+          builds: [ toplevel, release ]
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}}
     steps:
