@@ -1,9 +1,12 @@
 { config, lib, pkgs, modulesPath, ... }:
 
 {
+  imports = [
+    ./common/nixos.nix
+  ];
+
   # Host identity.
   networking.hostName = "tsrvbld";
-  system.nixos.tags = [ "tsrvbld" ];
 
   # Basic boot stuff, from nixos-generate-config.
   boot.loader.systemd-boot.enable = true;

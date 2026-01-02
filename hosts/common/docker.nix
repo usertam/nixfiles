@@ -1,11 +1,13 @@
 { config, lib, pkgs, modulesPath, ... }:
 
 {
-  imports = [ "${modulesPath}/virtualisation/docker-image.nix" ];
+  imports = [
+    ./nixos.nix
+    "${modulesPath}/virtualisation/docker-image.nix"
+  ];
 
   # Host identity.
   networking.hostName = lib.mkOverride 900 "generic-docker";
-  system.nixos.tags = lib.mkOverride 900 [ "generic-docker" ];
 
   documentation.doc.enable = false;
 

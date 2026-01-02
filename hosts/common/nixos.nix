@@ -3,14 +3,32 @@
 {
   # Import common modules.
   imports = [
-    ../programs/common.nix
-    ../programs/nix.nix
-    ../programs/tmux.nix
-    ../programs/zsh.nix
-    ../services/openssh.nix
-    ../services/rsyncd.nix
-    ../services/tailscale.nix
+    ../../programs/common.nix
+    ../../programs/nix.nix
+    ../../programs/tmux.nix
+    ../../programs/zsh.nix
+    ../../services/openssh.nix
+    ../../services/rsyncd.nix
+    ../../services/tailscale.nix
   ];
+
+  # Auto-gen host ID based on the set hostname. Used by ZFS.
+  networking.hostId =
+    let
+      inherit (config.networking) hostName;
+      isHostNameSet = hostName != "nixos";
+      hash = builtins.hashString "sha256" hostName;
+      hostId = builtins.substring 0 8 hash;
+    in
+    lib.mkIf isHostNameSet hostId;
+
+  # Add hostname as tag, shown in artifacts and boot.
+  system.nixos.tags =
+    let
+      inherit (config.networking) hostName;
+      isHostNameSet = hostName != "nixos";
+    in
+    lib.mkIf isHostNameSet [ hostName ];
 
   # Set time zone.
   time.timeZone = "Hongkong";
@@ -21,7 +39,7 @@
   # Link this repo read-only to /etc/nixos, assume image-based provisions.
   # Set environment.etc."nixos".enable = false for manual edits and switches.
   # Similar to system.copySystemConfiguration.
-  environment.etc."nixos".source = ./..;
+  environment.etc."nixos".source = ../..;
 
   # Raise soft file descriptors limit from 1024 to 65536. Hard limit remains same.
   # Mostly for user; not too worried about services, as systemd sets it to hard limit already.

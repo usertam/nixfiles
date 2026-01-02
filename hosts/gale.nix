@@ -1,10 +1,8 @@
 { ... }:
 
 {
-  # We don't have a darwin base set in flake.nix.
-  # Simply import the darwin base here.
   imports = [
-    ./darwin-common.nix
+    ./common/darwin.nix
   ];
 
   environment.darwinConfig = "/Users/tam/Desktop/projects/nixfiles";

@@ -39,7 +39,14 @@ sudo result/activate
 You may `sudo darwin-rebuild switch` after initial activation.
 
 ### Want more speed?
-Build with binary cache! Remember `--EXTRA-substituters` to not replace `cache.nixos.org`.
+Build with binary cache! Remember to include `cache.nixos.org` with `--substituters`.
+```sh
+sudo darwin-rebuild switch \
+  --flake ~/Desktop/projects/nixfiles \
+  --substituters 'https://cache.nixos.org https://usertam-nixfiles.cachix.org'
+```
+
+Or use `--EXTRA-substituters`.
 ```sh
 sudo nix build .#nixosConfigurations.installer.config.system.build.toplevel \
   --extra-substituters 'https://usertam-nixfiles.cachix.org' \

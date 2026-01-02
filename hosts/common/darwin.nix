@@ -3,14 +3,14 @@
 {
   # Import common modules, for darwin.
   imports = [
-    ../programs/common.nix
-    ../programs/nix.nix
-    ../programs/nix-no-gc.nix
-    ../programs/tmux.nix
-    ../programs/zsh.nix
-    ../services/darwin-builder.nix
-    ../services/openssh.nix
-    ../services/tailscale.nix
+    ../../programs/common.nix
+    ../../programs/nix.nix
+    ../../programs/nix-no-gc.nix
+    ../../programs/tmux.nix
+    ../../programs/zsh.nix
+    ../../services/darwin-builder.nix
+    ../../services/openssh.nix
+    ../../services/tailscale.nix
   ];
 
   # Override darwin-rebuild in systemPackages.

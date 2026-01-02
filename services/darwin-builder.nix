@@ -8,7 +8,7 @@
     systems = [ "aarch64-linux" "x86_64-linux" "riscv64-linux" "armv7l-linux" ];
     config = {
       imports = [
-        ../hosts/common.nix
+        ../hosts/common/nixos.nix
         ../programs/nix-no-gc.nix
       ];
       virtualisation = {

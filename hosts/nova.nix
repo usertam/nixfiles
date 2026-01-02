@@ -1,27 +1,17 @@
-{ inputs, config, lib, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, ... }:
 
 {
   imports = [
-    inputs.lanzaboote.nixosModules.lanzaboote
+    ./common/nixos.nix
+    ../services/lanzaboote.nix
   ];
 
   # Host identity.
   networking.hostName = "nova";
-  networking.hostId = "19e05df6"; # Used for ZFS.
-  system.nixos.tags = [ "nova" ];
 
   # Boot stuff.
-  boot.loader.systemd-boot.enable = false; # lanzaboote
+  # boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.
   boot.loader.efi.canTouchEfiVariables = true;
-
-  # Enable secure boot with lanzaboote.
-  boot.lanzaboote = {
-    enable = true;
-    pkiBundle = "/var/lib/sbctl";
-    autoGenerateKeys.enable = true;
-    autoEnrollKeys.enable = true;
-    autoEnrollKeys.autoReboot = true;
-  };
 
   # Enable ZFS support.
   boot.supportedFilesystems = [ "zfs" ];

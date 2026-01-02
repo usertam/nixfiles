@@ -2,13 +2,13 @@
 
 {
   imports = [
+    ./common/nixos.nix
     # We didn't pick the latest kernel because ZFS support.
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
   ];
 
   # Host identity.
   networking.hostName = "installer";
-  system.nixos.tags = [ "installer" ];
 
   services.getty.autologinUser = lib.mkForce "root";
   services.getty.helpLine = lib.mkForce ''
