@@ -13,25 +13,25 @@ jobs:
         include:
         - config: generic.docker
           system: x86_64-linux
-          extras: [ release ]
+          builds: [ toplevel, release ]
         - config: generic.docker
           system: aarch64-linux
-          extras: [ release ]
+          builds: [ toplevel, release ]
         - config: installer
           system: x86_64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: installer
           system: aarch64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: slate
           system: aarch64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: nova
           system: x86_64-linux
-          extras: [ vm ]
+          builds: [ toplevel, vm ]
         - config: tsrvbld
           system: x86_64-linux
-          extras: [ vm ]
+          builds: [ toplevel, vm ]
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}}
     steps:
@@ -77,19 +77,20 @@ jobs:
         sudo systemctl start nix-daemon
         sudo systemctl status nix-daemon
     - name: First build toplevel for ${{matrix.system}}.${{matrix.config}}
+      if: contains(matrix.builds, 'toplevel')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.toplevel
     - name: First build vm for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'vm')
+      if: contains(matrix.builds, 'vm')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.vm
     - name: First build release for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'release')
+      if: contains(matrix.builds, 'release')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.release
     - name: Bind mount /nix -> /overlay/b/nix
       run: |
         sudo systemctl stop nix-daemon
@@ -98,19 +99,20 @@ jobs:
         sudo systemctl start nix-daemon
         sudo systemctl status nix-daemon
     - name: Second build toplevel for ${{matrix.system}}.${{matrix.config}}
+      if: contains(matrix.builds, 'toplevel')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.toplevel
     - name: Second build vm for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'vm')
+      if: contains(matrix.builds, 'vm')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.vm
     - name: Second build release for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'release')
+      if: contains(matrix.builds, 'release')
       run: |
-        sudo $(which nix) build -L \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        sudo $(which nix) build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.release
     - name: Remove bind mounts on /nix
       run: |
         sudo systemctl stop nix-daemon

@@ -15,25 +15,25 @@ jobs:
         include:
         - config: generic.docker
           system: x86_64-linux
-          extras: [ release ]
+          builds: [ toplevel, release ]
         - config: generic.docker
           system: aarch64-linux
-          extras: [ release ]
+          builds: [ toplevel, release ]
         - config: installer
           system: x86_64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: installer
           system: aarch64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: slate
           system: aarch64-linux
-          extras: [ release, vm ]
+          builds: [ toplevel, release, vm ]
         - config: nova
           system: x86_64-linux
-          extras: [ vm ]
+          builds: [ toplevel, vm ]
         - config: tsrvbld
           system: x86_64-linux
-          extras: [ vm ]
+          builds: [ toplevel, vm ]
       fail-fast: false
     runs-on: ${{matrix.system == 'x86_64-linux' && 'ubuntu-24.04' || 'ubuntu-24.04-arm'}} 
     steps:
@@ -49,16 +49,20 @@ jobs:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
+      if: contains(matrix.builds, 'toplevel')
       run: |
-        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+        nix build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: Build vm for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'vm')
+      if: contains(matrix.builds, 'vm')
       run: |
-        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
+        nix build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
     - name: Build release for ${{matrix.system}}.${{matrix.config}}
-      if: contains(matrix.extras, 'release')
+      if: contains(matrix.builds, 'release')
       run: |
-        nix build -L --keep-going .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+        nix build -L --keep-going \
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.zst' -exec cp -a {} . \;
         echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@main
