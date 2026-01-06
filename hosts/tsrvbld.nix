@@ -53,6 +53,7 @@
   ];
 
   environment.systemPackages = with pkgs; [
+    bubblewrap # for claude-code sandbox
     claude-code
     docker
     earthly
