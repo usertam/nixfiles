@@ -31,6 +31,13 @@
       pkgs.coreutils
     ];
 
+  # Override non-existent default system profile.
+  environment.profiles = lib.mkForce [
+    "$HOME/.nix-profile"
+    "/nix/var/nix/profiles/system/sw" # was: /run/current-system/sw
+    "/nix/var/nix/profiles/default"
+  ];
+
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
