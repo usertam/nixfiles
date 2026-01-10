@@ -1,9 +1,9 @@
 { ... }:
 
 {
+  # For now, this is an exact mirror of castor, with a different hostname.
   imports = [
-    ./common/ec2-ami.nix
-    ../services/tailscale-srv.nix
+    ./castor.nix
   ];
 
   # Host identity.

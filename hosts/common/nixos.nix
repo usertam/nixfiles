@@ -54,6 +54,14 @@
   # Set default login user root.
   services.getty.autologinUser = lib.mkDefault "root";
 
+  # Assume single NIC setups.
+  networking.usePredictableInterfaceNames = lib.mkDefault false;
+
+  # Extra configurations to apply, when built as a VM.
+  virtualisation.vmVariant = {
+    virtualisation.diskSize = lib.mkDefault 16384; # 16 GiB
+  };
+
   # Hacky way to prepend to the default `system.nixos.tags`.
   system.nixos.label = "usertam-"
     + (import "${modulesPath}/misc/label.nix" { inherit config lib; }).config.system.nixos.label.content;
