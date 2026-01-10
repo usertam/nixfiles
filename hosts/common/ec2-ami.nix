@@ -10,9 +10,9 @@
   # Host identity.
   networking.hostName = lib.mkOverride 900 "generic-ami";
 
-  # Set up swapfile of 2 GiB.
+  # Set up swapfile.
   swapDevices = [
-    { device = "/swapfile"; size = 2048; }
+    { device = "/var/lib/swapfile"; size = 2 * 1024; }
   ];
 
   # Hack to override the build to produce the extra zst image.

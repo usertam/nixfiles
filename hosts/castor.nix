@@ -5,6 +5,7 @@
     ./common/ec2-ami.nix
     ../services/coturn.nix
     ../services/derper.nix
+    ../services/upgrade.nix
   ];
 
   # Host identity.

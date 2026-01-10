@@ -4,6 +4,7 @@
   imports = [
     ./common/nixos.nix
     ../services/lanzaboote.nix
+    ../services/upgrade.nix
   ];
 
   # Host identity.
