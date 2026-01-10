@@ -62,9 +62,19 @@
     virtualisation.diskSize = lib.mkDefault 16384; # 16 GiB
   };
 
-  # Hacky way to prepend to the default `system.nixos.tags`.
-  system.nixos.label = "usertam-"
-    + (import "${modulesPath}/misc/label.nix" { inherit config lib; }).config.system.nixos.label.content;
+  # Custom system label, re-import the original module.
+  system.nixos.label =
+    let
+      prefix = "usertam-";
+      tags = builtins.filter (tag: tag != "amazon") config.system.nixos.tags;
+      version = config.system.nixos.version;
+      importLabel = import "${modulesPath}/misc/label.nix" {
+        inherit lib;
+        config.system.nixos = { inherit tags version; };
+      };
+    in
+      # Default module does a unconditional sort on nixos.tags, set prefix here.
+      prefix + importLabel.config.system.nixos.label.content;
 
   # Database compatibility defaults.
   system.stateVersion = (lib.mkOverride 900) "24.05";
