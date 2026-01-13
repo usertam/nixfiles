@@ -17,6 +17,7 @@
   # Enable ZFS support.
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = true;
+  boot.zfs.extraPools = [ "tank" ];
 
   # Enable microcode updates.
   hardware.cpu.intel.updateMicrocode = true;
