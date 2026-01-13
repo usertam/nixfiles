@@ -7,16 +7,16 @@
         src = pkgs.fetchFromGitHub {
           owner = "DeterminateSystems";
           repo = "nix-src";
-          tag = "v3.11.2";
-          hash = "sha256-3Ia+y7Hbwnzcuf1hyuVnFtbnSR6ErQeFjemHdVxjCNE=";
+          tag = "v3.15.1";
+          hash = "sha256-GsC52VFF9Gi2pgP/haQyPdQoF5Qe2myk1tsPcuJZI28=";
         };
         patch = pkgs.fetchpatch {
-          url = "https://github.com/usertam/nix/compare/3eeb09f~5...3eeb09f.patch";
-          hash = "sha256-gASz7PC17+GkNGWNXb93h0r/sVINU9yKYEp/whjI3tA=";
+          url = "https://github.com/usertam/nix/commit/1de8514b4949255f7d9a33f4606ed27ac0282ecc.patch";
+          hash = "sha256-/d1m8ayMPBkih5cnAfM6BmV8yUFUoWtfi9ZUTwzQ8bs=";
         };
         nixComponents' = (pkgs.nixVersions.nixComponents_git.override {
           inherit src;
-          version = "2.31.1";
+          version = "2.33.0";
         }).appendPatches [ patch ];
       in
       nixComponents'.nix-everything.overrideAttrs (prev: {
