@@ -73,6 +73,15 @@
   # Enable qBittorrent, limit WebUI to tailscale.
   services.qbittorrent = {
     enable = true;
+    package = pkgs.qbittorrent-nox.overrideAttrs (prev: {
+      version = "5.2.0beta1-unstable-2026-01-13";
+      src = pkgs.fetchFromGitHub {
+        owner = "qbittorrent";
+        repo = "qBittorrent";
+        rev = "aec2fcd58b8c6a00881d462c27d4222585f00f19"; # 5.2.0beta1-unstable-2026-01-13
+        hash = "sha256-VJgxeFoTG1nuU9qI7sUVPwiUQjJ2VXNpRa0Fk420mAM=";
+      };
+    });
     serverConfig = {
       LegalNotice.Accepted = true;
       BitTorrent.Session = {
