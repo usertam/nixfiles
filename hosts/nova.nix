@@ -103,4 +103,9 @@
       };
     };
   };
+
+  # Make qBittorrent depends on the mount.
+  systemd.services.qbittorrent.unitConfig = {
+    RequiresMountsFor = "/srv/tank";
+  };
 }
