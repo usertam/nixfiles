@@ -31,10 +31,10 @@
       pkgs.coreutils
     ];
 
-  # Override non-existent default system profile.
+  # Override default system profiles.
   environment.profiles = lib.mkForce [
     "$HOME/.nix-profile"
-    "/nix/var/nix/profiles/system/sw" # was: /run/current-system/sw
+    "/run/current-system/sw" # was: /nix/var/nix/profiles/system/sw
     "/nix/var/nix/profiles/default"
   ];
 
