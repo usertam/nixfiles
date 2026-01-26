@@ -14,7 +14,7 @@
   ];
 
   # Override darwin-rebuild in systemPackages.
-  # Also, I want coreutils in /nix/var/nix/profiles/system/sw/bin.
+  # Also, I want coreutils in ${system-profile}/sw/bin.
   environment.systemPackages =
     let
       darwin-rebuild' = pkgs.runCommand "darwin-rebuild" {
@@ -37,6 +37,13 @@
     "/run/current-system/sw" # was: /nix/var/nix/profiles/system/sw
     "/nix/var/nix/profiles/default"
   ];
+
+  # Set primary user and darwin config path.
+  system.primaryUser = lib.mkDefault "samu";
+  environment.darwinConfig = lib.mkDefault "${config.system.primaryUserHome}/Desktop/nixfiles";
+
+  # Set local hostname to be same as hostname.
+  networking.localHostName = lib.mkDefault config.networking.hostName;
 
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
