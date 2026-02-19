@@ -14,10 +14,9 @@
           url = "https://github.com/usertam/nix/commit/1de8514b4949255f7d9a33f4606ed27ac0282ecc.patch";
           hash = "sha256-/d1m8ayMPBkih5cnAfM6BmV8yUFUoWtfi9ZUTwzQ8bs=";
         };
-        nixComponents' = (pkgs.nixVersions.nixComponents_git.override {
-          inherit src;
-          version = "2.33.0";
-        }).appendPatches [ patch ];
+        nixComponents' =
+          ((pkgs.nixVersions.nixComponents_git.overrideSource src).appendPatches [ patch ]).overrideScope
+            (_: _: { version = "2.33.0"; });
       in
       nixComponents'.nix-everything.overrideAttrs (prev: {
         doCheck = false;
