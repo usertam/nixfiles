@@ -45,6 +45,27 @@
   # Set local hostname to be same as hostname.
   networking.localHostName = lib.mkDefault config.networking.hostName;
 
+  # List of macOS settings.
+  system.defaults = {
+    dock = {
+      autohide = true;
+      scroll-to-open = true;
+      showAppExposeGestureEnabled = true;
+      persistent-apps = map (app: { inherit app; }) [
+        "/System/Applications/Launchpad.app"
+        "/System/Cryptexes/App/System/Applications/Safari.app"
+        "${config.system.primaryUserHome}/Applications/Home Manager Apps/VSCodium.app"
+        "${config.system.primaryUserHome}/Applications/Home Manager Apps/Ghostty.app"
+        "/Applications/Spotify.app"
+      ];
+    };
+    NSGlobalDomain = {
+      AppleShowAllExtensions = true;
+      AppleShowAllFiles = true;
+      "com.apple.trackpad.scaling" = 2.0;
+    };
+  };
+
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
