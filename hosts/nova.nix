@@ -74,12 +74,12 @@
   services.qbittorrent = {
     enable = true;
     package = pkgs.qbittorrent-nox.overrideAttrs (prev: {
-      version = "5.2.0beta1-unstable-2026-01-13";
+      version = "5.2.0beta1-unstable-2026-02-23";
       src = pkgs.fetchFromGitHub {
         owner = "qbittorrent";
         repo = "qBittorrent";
-        rev = "aec2fcd58b8c6a00881d462c27d4222585f00f19"; # 5.2.0beta1-unstable-2026-01-13
-        hash = "sha256-VJgxeFoTG1nuU9qI7sUVPwiUQjJ2VXNpRa0Fk420mAM=";
+        rev = "7073130332cd433ff4bf337e5a387be87fea9811"; # 5.2.0beta1-unstable-2026-02-23
+        hash = "sha256-WwTNpeTpyS0OauZWN2mHZnM5qgPneHFwbC/lnnz8X2U=";
       };
     });
     serverConfig = {
