@@ -7,18 +7,19 @@
         src = pkgs.fetchFromGitHub {
           owner = "DeterminateSystems";
           repo = "nix-src";
-          tag = "v3.15.1";
-          hash = "sha256-GsC52VFF9Gi2pgP/haQyPdQoF5Qe2myk1tsPcuJZI28=";
+          tag = "v3.16.1";
+          hash = "sha256-UAvzXk5s7y6RPYB7isRFDe/Y20U9iK8f0NH+sfV7yPU=";
         };
         patch = pkgs.fetchpatch {
           url = "https://github.com/usertam/nix/commit/1de8514b4949255f7d9a33f4606ed27ac0282ecc.patch";
           hash = "sha256-/d1m8ayMPBkih5cnAfM6BmV8yUFUoWtfi9ZUTwzQ8bs=";
         };
-        nixComponents' =
-          ((pkgs.nixVersions.nixComponents_git.overrideSource src).appendPatches [ patch ]).overrideScope
-            (_: _: { version = "2.33.0"; });
       in
-      nixComponents'.nix-everything.overrideAttrs (prev: {
+      ((pkgs.nixVersions.nixComponents_git.overrideSource src).appendPatches [ patch ])
+      .nix-everything.overrideAllMesonComponents (final: prev: {
+        buildInputs = (prev.buildInputs or [ ]) ++ lib.optional (lib.elem final.pname [ "nix-store" "nix-expr" ]) pkgs.wasmtime;
+        mesonFlags = (prev.mesonFlags or [ ]) ++ lib.optional (lib.elem final.pname [ "nix-store" "nix-expr" ]) (lib.mesonEnable "wasm" true);
+        version = "2.33.3";
         doCheck = false;
         doInstallCheck = false;
       });
