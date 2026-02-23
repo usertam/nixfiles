@@ -13,4 +13,14 @@
 
   # Prohibit self-login via SSH.
   users.sshUsers = [ ];
+
+  # Always caffeinate.
+  launchd.daemons.caffeinate = {
+    script = "/usr/bin/caffeinate -disu";
+    serviceConfig = {
+      Label = "org.nixos.caffeinate";
+      RunAtLoad = true;
+      KeepAlive = true;
+    };
+  };
 }
