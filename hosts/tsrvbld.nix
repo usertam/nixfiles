@@ -3,6 +3,7 @@
 {
   imports = [
     ./common/nixos.nix
+    ../services/upgrade.nix
   ];
 
   # Host identity.
