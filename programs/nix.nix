@@ -2,27 +2,8 @@
 
 {
   nix = {
-    package =
-      let
-        src = pkgs.fetchFromGitHub {
-          owner = "DeterminateSystems";
-          repo = "nix-src";
-          tag = "v3.16.1";
-          hash = "sha256-UAvzXk5s7y6RPYB7isRFDe/Y20U9iK8f0NH+sfV7yPU=";
-        };
-        patch = pkgs.fetchpatch {
-          url = "https://github.com/usertam/nix/commit/1de8514b4949255f7d9a33f4606ed27ac0282ecc.patch";
-          hash = "sha256-/d1m8ayMPBkih5cnAfM6BmV8yUFUoWtfi9ZUTwzQ8bs=";
-        };
-      in
-      ((pkgs.nixVersions.nixComponents_git.overrideSource src).appendPatches [ patch ])
-      .nix-everything.overrideAllMesonComponents (final: prev: {
-        buildInputs = (prev.buildInputs or [ ]) ++ lib.optional (lib.elem final.pname [ "nix-store" "nix-expr" ]) pkgs.wasmtime;
-        mesonFlags = (prev.mesonFlags or [ ]) ++ lib.optional (lib.elem final.pname [ "nix-store" "nix-expr" ]) (lib.mesonEnable "wasm" true);
-        version = "2.33.3";
-        doCheck = false;
-        doInstallCheck = false;
-      });
+    # Use lix as default nix impl.
+    package = pkgs.lixPackageSets.latest.lix;
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = lib.mkForce {
@@ -62,9 +43,6 @@
       ];
       http-connections = 0;                   # Uncap parallel TCP connections.
       max-substitution-jobs = 128;            # This is 8x the default.
-      download-buffer-size = 536870912;       # 512 MiB.
-      eval-cores = 0;                         # For detsys nix only; enable parallel evaluation.
-      lazy-trees = true;                      # For detsys nix only.
       trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
         "https://nix-community.cachix.org"    # provide cuda and unfree-redistributable packages
         "https://cache.ztier.in"              # provide riscv64-linux packages
