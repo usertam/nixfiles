@@ -51,13 +51,6 @@
       autohide = true;
       scroll-to-open = true;
       showAppExposeGestureEnabled = true;
-      persistent-apps = map (app: { inherit app; }) [
-        "/System/Applications/Launchpad.app"
-        "/System/Cryptexes/App/System/Applications/Safari.app"
-        "${config.system.primaryUserHome}/Applications/Home Manager Apps/VSCodium.app"
-        "${config.system.primaryUserHome}/Applications/Home Manager Apps/Ghostty.app"
-        "/Applications/Spotify.app"
-      ];
     };
     NSGlobalDomain = {
       AppleShowAllExtensions = true;
