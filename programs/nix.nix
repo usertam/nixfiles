@@ -43,7 +43,6 @@
       ];
       http-connections = 0;                   # Uncap parallel TCP connections.
       max-substitution-jobs = 128;            # This is 8x the default.
-      download-buffer-size = 536870912;       # 512 MiB.
       trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
         "https://nix-community.cachix.org"    # provide cuda and unfree-redistributable packages
         "https://cache.ztier.in"              # provide riscv64-linux packages
