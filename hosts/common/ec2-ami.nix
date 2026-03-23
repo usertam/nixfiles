@@ -20,7 +20,7 @@
     let
       prev = config.system.build.amazonImage;
     in
-      pkgs.stdenv.mkDerivation (prev.drvAttrs // {
+      pkgs.stdenv.mkDerivation ((lib.filterAttrs (k: _: k != "QEMU_OPTS") prev.drvAttrs) // {
         postVM = prev.postVM + ''
           ${lib.getExe pkgs.zstd} -T$NIX_BUILD_CORES $diskImage
           echo "file vpc ''${diskImage}.zst" >> $out/nix-support/hydra-build-products
