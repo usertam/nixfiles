@@ -77,5 +77,5 @@
       prefix + importLabel.config.system.nixos.label.content;
 
   # Database compatibility defaults.
-  system.stateVersion = (lib.mkOverride 900) "24.05";
+  system.stateVersion = (lib.mkOverride 900) "26.05";
 }
