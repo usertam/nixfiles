@@ -5,6 +5,7 @@
     darwin.inputs.nixpkgs.follows = "nixpkgs";
     lanzaboote.url = "github:nix-community/lanzaboote/v1.0.0";
     lanzaboote.inputs.nixpkgs.follows = "nixpkgs";
+    proxmox-nixos.url = "github:SaumonNet/proxmox-nixos";
   };
 
   outputs = { self, nixpkgs, darwin, ... }@inputs: {
@@ -12,7 +13,7 @@
       nixosConfigurations = let
         withModules = modules: nixpkgs.lib.nixosSystem {
           inherit system modules;
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs system; };
         };
       in {
         generic = nixpkgs.lib.recurseIntoAttrs {
@@ -21,8 +22,9 @@
         };
         installer = withModules [ ./hosts/installer.nix ];
         tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
-        slate = withModules [ ./hosts/slate.nix ];
+        pyroclast = withModules [ ./hosts/pyroclast.nix ];
         nova = withModules [ ./hosts/nova.nix ];
+        slate = withModules [ ./hosts/slate.nix ];
         castor = withModules [ ./hosts/castor.nix ];
         pollux = withModules [ ./hosts/pollux.nix ];
       };
