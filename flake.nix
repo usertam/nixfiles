@@ -22,7 +22,7 @@
         };
         installer = withModules [ ./hosts/installer.nix ];
         tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
-        pyroclast = withModules [ ./hosts/pyroclast.nix ];
+        zenith = withModules [ ./hosts/zenith.nix ];
         nova = withModules [ ./hosts/nova.nix ];
         slate = withModules [ ./hosts/slate.nix ];
         castor = withModules [ ./hosts/castor.nix ];

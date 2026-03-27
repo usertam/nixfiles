@@ -31,7 +31,7 @@ jobs:
         - config: nova
           system: x86_64-linux
           builds: [ toplevel, vm ]
-        - config: pyroclast
+        - config: zenith
           system: x86_64-linux
           builds: [ toplevel, vm ]
         - config: tsrvbld

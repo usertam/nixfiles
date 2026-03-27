@@ -13,7 +13,7 @@
   ];
 
   # Host identity.
-  networking.hostName = "pyroclast";
+  networking.hostName = "zenith";
 
   # Boot stuff.
   boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.
@@ -57,6 +57,9 @@
 
   # Manually provision /etc/nixos on this host.
   environment.etc."nixos".enable = false;
+
+  # Multiple NICs, want predictable names.
+  networking.usePredictableInterfaceNames = true;
 
   # Enable NetworkManager, iwd and systemd-resolved.
   services.resolved.enable = true;
