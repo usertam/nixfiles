@@ -5,8 +5,7 @@
   imports = [
     ../../programs/common.nix
     ../../programs/nix.nix
-    ../../programs/tmux.nix
-    ../../programs/zsh.nix
+    ../../programs/shell.nix
     ../../services/openssh.nix
     ../../services/rsyncd.nix
     ../../services/tailscale.nix

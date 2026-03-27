@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   nix = {
@@ -62,6 +62,12 @@
     } // lib.optionalAttrs pkgs.stdenv.isLinux {
       use-cgroups = true;
     };
+
+    # Keep outputs and derivations, if automatic gc is disabled.
+    extraOptions = lib.optionalString (!config.nix.gc.automatic) ''
+      keep-outputs = true
+      keep-derivations = true
+    '';
   };
 
   # TODO: Workaround of a nix-darwin bug on auto-allocate-uids.

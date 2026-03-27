@@ -9,13 +9,13 @@
     config = {
       imports = [
         ../hosts/common/nixos.nix
-        ../programs/nix-no-gc.nix
       ];
       virtualisation = {
         cores = 8;
         darwin-builder.memorySize = 12 * 1024;
       };
       boot.binfmt.emulatedSystems = [ "riscv64-linux" "armv7l-linux" "x86_64-linux" ];
+      nix.gc.automatic = false;
       nix.settings = {
         extra-platforms = [ "x86_64-linux" "riscv64-linux" "armv7l-linux" "x86_64-linux" ];
       };

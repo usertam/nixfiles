@@ -5,9 +5,7 @@
   imports = [
     ../../programs/common.nix
     ../../programs/nix.nix
-    ../../programs/nix-no-gc.nix
-    ../../programs/tmux.nix
-    ../../programs/zsh.nix
+    ../../programs/shell.nix
     ../../services/darwin-builder.nix
     ../../services/openssh.nix
     ../../services/tailscale.nix
@@ -44,6 +42,9 @@
 
   # Set local hostname to be same as hostname.
   networking.localHostName = lib.mkDefault config.networking.hostName;
+
+  # Disable nix garbage collection, including old outputs and derivations.
+  nix.gc.automatic = false;
 
   # List of macOS settings.
   system.defaults = {

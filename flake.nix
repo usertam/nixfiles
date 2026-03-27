@@ -32,7 +32,7 @@
       darwinConfigurations = let
         withModules = modules: darwin.lib.darwinSystem {
           inherit system modules;
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs system; };
         };
       in {
         stub = withModules [ ./hosts/stub.nix ];
