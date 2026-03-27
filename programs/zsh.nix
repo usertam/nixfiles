@@ -28,9 +28,7 @@
 
       export LESS='-FiR'
       local CORRECT_IGNORE='[_|.]*'
-
-      # Original programs.zsh.promptInit. Changed to off.
-      autoload -U promptinit && promptinit && prompt off && setopt prompt_sp
+      local PROMPT='%n@%m:%~%# '
     ''
     + builtins.concatStringsSep "\n" (
       map (x: "alias -- ${x}='${x} --color=auto'") [

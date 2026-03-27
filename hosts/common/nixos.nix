@@ -57,6 +57,9 @@
   # Assume single NIC setups.
   networking.usePredictableInterfaceNames = lib.mkDefault false;
 
+  # Trigger pam_lastlog2.so, print last login info.
+  security.pam.services.login.updateWtmp = true;
+
   # Extra configurations to apply, when built as a VM.
   virtualisation.vmVariant = {
     virtualisation.diskSize = lib.mkDefault 16384; # 16 GiB

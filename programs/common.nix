@@ -6,6 +6,7 @@
     btop
     file
     git
+    gptfdisk
     iperf3
     nmap
     socat
