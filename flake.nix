@@ -23,6 +23,7 @@
         installer = withModules [ ./hosts/installer.nix ];
         tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
         zenith = withModules [ ./hosts/zenith.nix ];
+        fabric = withModules [ ./hosts/fabric.nix ];
         nova = withModules [ ./hosts/nova.nix ];
         slate = withModules [ ./hosts/slate.nix ];
         castor = withModules [ ./hosts/castor.nix ];
