@@ -34,6 +34,9 @@ jobs:
         - config: zenith
           system: x86_64-linux
           builds: [ toplevel, vm ]
+        - config: fabric
+          system: x86_64-linux
+          builds: [ toplevel, release, vm ]
         - config: tsrvbld
           system: x86_64-linux
           builds: [ toplevel, vm ]
