@@ -24,6 +24,7 @@
         tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
         zenith = withModules [ ./hosts/zenith.nix ];
         fabric = withModules [ ./hosts/fabric.nix ];
+        lithos = withModules [ ./hosts/lithos.nix ];
         nova = withModules [ ./hosts/nova.nix ];
         slate = withModules [ ./hosts/slate.nix ];
         castor = withModules [ ./hosts/castor.nix ];

@@ -24,10 +24,10 @@
                -n 2:0:+2G -t 2:EF00 \                       zfs create -o mountpoint=legacy zroot/nix
                /dev/nvme0n1
                                                         To mount the ZFS partitions, do
-        zpool create \                                      mkdir -p /mnt/home /mnt/nix
-          -o ashift=12 \                                    mount -t zfs zroot/home /mnt/home
-          -O atime=off \                                    mount -t zfs zroot/nix /mnt/nix
-          -O compression=zstd \                             mount -t zfs zroot/root /mnt
+        zpool create \                                      mount -t zfs zroot/root /mnt
+          -o ashift=12 \                                    mkdir /mnt/home /mnt/nix
+          -O atime=off \                                    mount -t zfs zroot/home /mnt/home
+          -O compression=zstd \                             mount -t zfs zroot/nix /mnt/nix
           -O xattr=sa \
           -O acltype=posixacl \                         To create and mount the EFI system partition, do
           -O mountpoint=none \                              mkdir -p /mnt/boot

@@ -56,6 +56,9 @@
   # Assume single NIC setups.
   networking.usePredictableInterfaceNames = lib.mkDefault false;
 
+  # Use nftables instead of iptables.
+  networking.nftables.enable = true;
+
   # Trigger pam_lastlog2.so, print last login info.
   security.pam.services.login.updateWtmp = true;
 

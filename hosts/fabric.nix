@@ -10,6 +10,9 @@
   # Host identity.
   networking.hostName = "fabric";
 
+  # Mission critical machine, do not switch.
+  system.autoUpgrade.operation = "boot";
+
   # Boot.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -295,6 +298,7 @@
   };
 
   # Hack to override the build to produce the extra zst image.
+  image.format = "raw";
   system.build.release =
     let
       prev = config.system.build.image;

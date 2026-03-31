@@ -1,4 +1,4 @@
-{ inputs, system, lib, pkgs, ... }:
+{ inputs, config, system, lib, pkgs, ... }:
 
 {
   imports = [
@@ -14,6 +14,9 @@
 
   # Host identity.
   networking.hostName = "zenith";
+
+  # Mission critical machine, do not switch.
+  system.autoUpgrade.operation = "boot";
 
   # Boot stuff.
   boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.
@@ -35,10 +38,10 @@
   hardware.cpu.amd.updateMicrocode = true;
   hardware.enableRedistributableFirmware = true;
 
-  # Configure VFIO passthrough for I226-V [8086:125c] and RTL8125 [10ec:8125].
-  boot.kernelParams = [ "amd_iommu=on" "iommu=pt" ];
+  # Configure VFIO passthrough for I226-V [8086:125c], RTL8125 [10ec:8125], USB 3.1 (Type-C) [1022:15b7].
+  boot.kernelParams = [ "amd_iommu=on" "iommu=pt" "vfio-pci.ids=8086:125c,10ec:8125,1022:15b7" ];
   boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
-  boot.extraModprobeConfig = "options vfio-pci ids=8086:125c,10ec:8125";
+  boot.extraModprobeConfig = "options vfio-pci ids=8086:125c,10ec:8125,1022:15b7";
 
   fileSystems = {
     "/" = {
@@ -92,8 +95,10 @@
     gateway = [ "172.16.1.1" ];
     networkConfig.DHCPServer = true;
     dhcpServerConfig = rec {
-      PoolOffset = 256 + 1;
-      PoolSize = 16 * 256 - PoolOffset;
+      # Reserve up to 172.16.1.1.
+      PoolOffset = 256 + 2;
+      # Exclude broadcast address.
+      PoolSize = 16 * 256 - PoolOffset - 1;
       DefaultLeaseTimeSec = 604800;
       EmitDNS = true;
       DNS = [ "172.16.1.1" ];
@@ -101,6 +106,9 @@
       Router = [ "172.16.1.1" ];
     };
   };
+
+  # And don't forget to open the port for DHCP requests.
+  networking.firewall.interfaces.vmbr0.allowedUDPPorts = [ 67 ];
 
   # Enable Proxmox VE.
   services.proxmox-ve = {
@@ -111,4 +119,23 @@
   services.openssh.settings = {
     AcceptEnv = lib.mkForce null;
   };
+
+  # Break pvedaemon's dependency on network-online.target.
+  systemd.services.corosync.after = lib.mkForce [ ];
+
+  # Fill in the missing ZFS paths for autostart.
+  # https://github.com/SaumonNet/proxmox-nixos/issues/122
+  systemd.services.pvedaemon = {
+    path = [ config.boot.zfs.package ];
+  };
+  systemd.services.pve-guests = {
+    path = [ config.boot.zfs.package ];
+    after = [ "zfs-import.target" "zfs.target" ];
+    wants = [ "zfs-import.target" ];
+  };
+
+  # The proxmox-ve package ships util-linux's login(1), which uses the "remote"
+  # PAM service (via -h flag) for remote logins. Tailscale SSH invokes login -h,
+  # and without /etc/pam.d/remote the account phase falls through to pam_deny.
+  security.pam.services."remote".unixAuth = true;
 }
