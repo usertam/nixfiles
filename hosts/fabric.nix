@@ -10,6 +10,9 @@
   # Host identity.
   networking.hostName = "fabric";
 
+  # Mission critical machine, do not switch.
+  system.autoUpgrade.operation = "boot";
+
   # Boot.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -26,7 +29,7 @@
 
   # Networking.
   networking.useNetworkd = true;
-  networking.usePredictableInterfaceNames = true;
+  networking.usePredictableInterfaceNames = lib.mkForce true;
   systemd.network.enable = true;
   services.resolved.enable = false;
 
@@ -144,6 +147,7 @@
         ct state { established, related } accept
 
         iifname $LAN oifname $WAN accept
+        iifname "lan0" oifname "vmbr0" accept
       }
 
       chain mangle_prerouting {
@@ -295,6 +299,7 @@
   };
 
   # Hack to override the build to produce the extra zst image.
+  image.format = "raw";
   system.build.release =
     let
       prev = config.system.build.image;
