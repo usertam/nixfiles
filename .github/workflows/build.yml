@@ -37,6 +37,12 @@ jobs:
         - config: fabric
           system: x86_64-linux
           builds: [ toplevel, release, vm ]
+        - config: lithos
+          system: x86_64-linux
+          builds: [ toplevel, release, vm ]
+        - config: tecton
+          system: x86_64-linux
+          builds: [ toplevel, release, vm ]
         - config: tsrvbld
           system: x86_64-linux
           builds: [ toplevel, vm ]
