@@ -21,13 +21,13 @@
     in
     lib.mkIf isHostNameSet hostId;
 
-  # Add hostname as tag, shown in artifacts and boot.
-  system.nixos.tags =
+  # Set variant ID based on hostname.
+  system.nixos.variant_id =
     let
       inherit (config.networking) hostName;
       isHostNameSet = hostName != "nixos";
     in
-    lib.mkIf isHostNameSet [ hostName ];
+    lib.mkIf isHostNameSet hostName;
 
   # Set time zone.
   time.timeZone = "Hongkong";
@@ -74,19 +74,17 @@
     virtualisation.diskSize = lib.mkDefault 16384; # 16 GiB
   };
 
-  # Custom system label, re-import the original module.
-  system.nixos.label =
-    let
-      prefix = "usertam-";
-      tags = builtins.filter (tag: tag != "amazon") config.system.nixos.tags;
-      version = config.system.nixos.version;
-      importLabel = import "${modulesPath}/misc/label.nix" {
-        inherit lib;
-        config.system.nixos = { inherit tags version; };
-      };
-    in
-      # Default module does a unconditional sort on nixos.tags, set prefix here.
-      prefix + importLabel.config.system.nixos.label.content;
+  # Custom system label, and do not sort the tags.
+  system.nixos.label = lib.maybeEnv "NIXOS_LABEL" (
+    lib.concatStringsSep "-" (
+      lib.flatten [
+        "usertam"
+        config.networking.hostName
+        config.system.nixos.tags
+        (lib.maybeEnv "NIXOS_LABEL_VERSION" config.system.nixos.version)
+      ]
+    )
+  );
 
   # Database compatibility defaults.
   system.stateVersion = (lib.mkOverride 900) "26.05";
