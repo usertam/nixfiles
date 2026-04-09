@@ -2,9 +2,10 @@
 
 {
   imports = [
-    ./common/nixos.nix
     "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/virtualisation/disk-image.nix"
+    ./common/nixos.nix
+    ../services/upgrade.nix
   ];
 
   # Host identity.
@@ -60,12 +61,14 @@
         hash = "sha256-WwTNpeTpyS0OauZWN2mHZnM5qgPneHFwbC/lnnz8X2U=";
       };
     });
+    profileDir = "/srv/tank/services/torrent/profile/";
     serverConfig = {
       LegalNotice.Accepted = true;
       BitTorrent.Session = {
-        DefaultSavePath = "/srv/tank/multiverse";
-        DisableAutoTMMTriggers.CategorySavePathChanged = false;
-        DisableAutoTMMTriggers.DefaultSavePathChanged = false;
+        DefaultSavePath = "/srv/tank/services/torrent/complete";
+        TempPathEnabled = true;
+        TempPath = "/srv/tank/services/torrent/incomplete";
+        TorrentExportDirectory = "/srv/tank/services/torrent/origin";
         MaxUploads = 16;
         MaxUploadsPerTorrent = 16;
         QueueingSystemEnabled = false;
@@ -74,7 +77,7 @@
       };
       Preferences = {
         WebUI = {
-          AuthSubnetWhitelist = "100.64.0.0/10";
+          AuthSubnetWhitelist = "100.64.0.0/10,127.0.0.1/32";
           AuthSubnetWhitelistEnabled = true;
         };
         General.Locale = "en";
@@ -82,15 +85,31 @@
     };
   };
 
-  # Make qBittorrent depends on the mount.
+  # Make qBittorrent depends on the ZFS mount.
   systemd.services.qbittorrent.unitConfig = {
-    RequiresMountsFor = "/srv/tank";
+    BindsTo = [ "srv-tank.mount" ];
+    After = [ "srv-tank.mount" ];
   };
+
+  # Set UID and GID: 800 + sha256sum("qbittorrent") % 100.
+  users.users.qbittorrent.uid = 872;
+  users.groups.qbittorrent.gid = 872;
+
+  # Enable radarr.
+  services.radarr = {
+    enable = true;
+    dataDir = "/srv/tank/services/radarr/profile";
+  };
+
+  # Set UID and GID: 800 + sha256sum("radarr") % 100.
+  users.users.radarr.uid = lib.mkForce 819;
+  users.groups.radarr.gid = lib.mkForce 819;
+  users.users.radarr.isSystemUser = true;
 
   # Open firewall on tailscale0 for NFS.
   networking.firewall.interfaces."tailscale0" = {
-    allowedTCPPorts = [ 111 2049 8080 20048 ];
-    allowedUDPPorts = [ 111 2049 8080 20048 ];
+    allowedTCPPorts = [ 111 2049 7878 8080 20048 ];
+    allowedUDPPorts = [ 111 2049 7878 8080 20048 ];
   };
 
   # Hack to override the build to produce the extra zst image.

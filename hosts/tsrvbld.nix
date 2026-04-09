@@ -58,7 +58,6 @@
     claude-code
     docker
     earthly
-    gnupg
     vagrant
   ];
 

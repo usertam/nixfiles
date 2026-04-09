@@ -2,10 +2,10 @@
 
 {
   imports = [
+    inputs.proxmox-nixos.nixosModules.proxmox-ve
     ./common/nixos.nix
     # ../services/lanzaboote.nix
     ../services/upgrade.nix
-    inputs.proxmox-nixos.nixosModules.proxmox-ve
   ];
 
   nixpkgs.overlays = [

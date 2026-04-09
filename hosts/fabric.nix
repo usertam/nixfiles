@@ -2,9 +2,10 @@
 
 {
   imports = [
-    ./common/nixos.nix
     "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/virtualisation/disk-image.nix"
+    ./common/nixos.nix
+    ../services/upgrade.nix
   ];
 
   # Host identity.
@@ -97,13 +98,13 @@
   networking.firewall.enable = false;
 
   networking.nftables.ruleset = ''
-    define WAN = { "wan0", "macvlan0", "wg0" }
+    define WAN = { "wan0", "macvlan0", "wg0", "wg1" }
     define LAN = { "lan0", "vmbr0" }
 
     table inet filter {
       flowtable forward_offload {
         hook ingress priority filter;
-        devices = { "wan0", "macvlan0", "wg0", "lan0", "vmbr0" };
+        devices = { "wan0", "macvlan0", "wg0", "wg1", "lan0", "vmbr0" };
       }
 
       chain syn_flood {
@@ -157,7 +158,7 @@
 
       chain mangle_forward {
         type filter hook forward priority mangle; policy accept;
-        # MSS clamping for all interfaces (covers wan0, wg0, macvlan0/1).
+        # MSS clamping for all outgoing interfaces.
         tcp flags & (fin | syn | rst) == syn tcp option maxseg size set rt mtu
       }
     }
@@ -188,11 +189,15 @@
         ];
         local-zone = ''"home." static'';
 
+        # Until we have working IPv6.
+        do-ip6 = false;
+
         so-rcvbuf = "8m";
         so-sndbuf = "8m";
         msg-cache-size = "16m";
         rrset-cache-size = "32m";
         neg-cache-size = "2m";
+        edns-buffer-size = 1232;
 
         harden-large-queries = true;
         harden-glue = true;
@@ -215,9 +220,6 @@
         name = "vpn-policy-routing";
         runtimeInputs = with pkgs; [ iproute2 nftables dig gnugrep ];
         text = ''
-          IFACES=(wg0)
-          NFT_IFACES="$(IFS=', '; echo "''${IFACES[*]}")"
-
           DOMAINS=(
               claude.ai
               gemini.google.com
@@ -226,11 +228,11 @@
               www.tiktok.com
           )
 
-          for IFACE in "''${IFACES[@]}"; do
-              ip link show "$IFACE" &>/dev/null || continue
-              ip route show table 100 | grep -q "default dev $IFACE" || \
-                  ip route add default dev "$IFACE" table 100 2>/dev/null
-          done
+          ip route show table 100 | grep -q "default dev wg0" || \
+              ip route add default dev wg0 table 100
+
+          ip route show table 100 | grep -q "default dev wg1" || \
+              ip route append default dev wg1 table 100
 
           ip rule list | grep -q "fwmark 0x64" || \
               ip rule add fwmark 0x64 table 100 priority 100
@@ -270,12 +272,12 @@
 
           if ! nft -a list chain inet filter forward 2>/dev/null | grep -q "vpn-policy-routing-fwd"; then
               nft insert rule inet filter forward \
-                  meta mark 0x64 oifname "{ $NFT_IFACES }" accept comment "vpn-policy-routing-fwd"
+                  meta mark 0x64 oifname "{ wg0, wg1 }" accept comment "vpn-policy-routing-fwd"
           fi
 
           if ! nft -a list chain ip nat srcnat 2>/dev/null | grep -q "vpn-policy-routing-nat"; then
               nft insert rule ip nat srcnat \
-                  oifname "{ $NFT_IFACES }" masquerade comment "vpn-policy-routing-nat"
+                  oifname "{ wg0, wg1 }" masquerade comment "vpn-policy-routing-nat"
           fi
         '';
       };

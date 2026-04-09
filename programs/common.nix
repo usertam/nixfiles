@@ -29,6 +29,7 @@ in
     btop'
     file
     gptfdisk
+    gnupg
     iperf3
     pciutils
     nmap

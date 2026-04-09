@@ -2,8 +2,8 @@
 
 {
   imports = [
-    ./common/nixos.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
+    ./common/nixos.nix
   ];
 
   # Host identity.

@@ -2,9 +2,9 @@
 
 {
   imports = [
-    ./common/nixos.nix
     # We didn't pick the latest kernel because ZFS support.
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+    ./common/nixos.nix
   ];
 
   # Host identity.
