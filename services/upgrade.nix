@@ -3,7 +3,7 @@
 {
   system.autoUpgrade = {
     enable = true;
-    flake = "./flake";
+    flake = ".";
     upgrade = false;
   } // lib.optionalAttrs (config.swapDevices != [ ]) {
     runGarbageCollection = true;
@@ -42,6 +42,7 @@
 
       echo 'Latest commit:'
       git log -1 --show-signature HEAD 2>&1 | sed 's/^/    /'
+      echo
 
       # Skip the dependency check when the commit is properly signed.
       if git log -1 --format='%H %G? %GF' HEAD | grep -q 'G EC4EE4903C8236982CABD2062D8760B0229E2560'; then
@@ -60,31 +61,31 @@
           echo 'No commits are signed by code@usertam.dev. This should never happen, abort.'
           exit 1
         elif ! git verify-commit "$LAST_SIGNED" &>/dev/null; then
-          echo "Found last good commit ''${LAST_SIGNED:0:7} but could not verify signature, abort."
+          echo "Found last signed commit ''${LAST_SIGNED:0:7} but could not verify signature, abort."
           exit 1
         fi
 
         # Accept only if the diff from that commit is exclusively flake.lock.
         CHANGED=$(git diff --name-only "$LAST_SIGNED" HEAD 2>&1)
         if [ "$CHANGED" != "flake.lock" ]; then
-          echo 'Latest commit has changes beyond flake.lock, abort.'
+          echo 'Latest commit is unsigned but has changes beyond flake.lock, abort.'
           echo 'Changed files: '
           git diff --name-only "$LAST_SIGNED" HEAD 2>&1 | sed 's/^/    /'
           exit 1
         fi
 
-        echo 'Latest commit only modifies flake.lock, proceeding with lock verification.'
+        echo 'Latest commit only modifies flake.lock, proceed with lock verification.'
 
         # Extract the previous lockfile for comparison.
         git show "$LAST_SIGNED:flake.lock" > prev.lock
 
-        # Phase 1a: Verify everything except the volatile .locked node is identical.
+        # Verify everything except the volatile .locked node is identical.
         # The mask removes lastModified/narHash/rev from every .locked node and
         # diffs the rest, catching: input retargeting (.original node changes),
         # node membership (added/removed nodes), misc .locked metadata changes
         # (owner/repo/type drift), and transitive input graph rewires.
 
-        echo 'Phase 1a: Checking membership or non-volatile field changes...'
+        echo 'Checking membership or non-volatile field changes...'
         MASK='del(.. | .locked? | .lastModified?, .narHash?, .rev?)'
         if ! diff <(jq -S "$MASK" prev.lock) <(jq -S "$MASK" flake.lock) >/dev/null; then
           echo 'Lockfile has changes outside the allowed fields (lastModified, narHash, rev), abort.'
@@ -92,13 +93,13 @@
           diff <(jq -S "$MASK" prev.lock) <(jq -S "$MASK" flake.lock) | sed 's/^/    /'
           exit 1
         fi
-        echo 'No non-volatile changes found, proceeding.'
+        echo 'No non-volatile changes found, proceed.'
 
-        # Phase 1b: Ensure pinned input invariance. Catches the case where
+        # Ensure pinned input invariance. Catches the case where
         # locked.rev was bumped without a matching change to original.rev.
-        # Phase 1a misses this since locked.rev is masked away.
+        # Last phase misses this since locked.rev is masked away.
 
-        echo 'Phase 1b: Checking pinned inputs locked and original rev...'
+        echo 'Checking pinned inputs locked and original rev...'
         VIOLATED=$(jq -r '.nodes | to_entries[]
           | select(.value.original.rev)
           | select(.value.locked.rev != .value.original.rev)
@@ -108,9 +109,9 @@
           echo "$VIOLATED"
           exit 1
         fi
-        echo 'Pinned inputs locked rev consistent, proceeding.'
+        echo 'Pinned inputs locked rev consistent, proceed.'
 
-        echo 'Phase 2a: Building changeset of input revs...'
+        echo 'Building changeset of input revs...'
         CHANGESET=$(jq -n --slurpfile a prev.lock --slurpfile b flake.lock '
           [$a[0].nodes | to_entries[]] as $old |
           [$b[0].nodes | to_entries[]] as $new |
@@ -133,7 +134,7 @@
         echo "Found $CHANGE_COUNT changed inputs."
         echo "$CHANGESET" | jq -r '.[] | "    + \(.name) (aka \(.type):\(.owner)/\(.repo)): \n        \(.old_rev) -> \(.new_rev)"'
 
-        echo 'Phase 2b: Verifying ancestry via GitHub API...'
+        echo 'Verifying commit ancestry via GitHub API...'
         VERIFY_FAILED=0
         for i in $(seq 0 $((CHANGE_COUNT - 1))); do
           NAME=$(echo "$CHANGESET" | jq -r ".[$i].name")
@@ -183,10 +184,10 @@
         done
 
         if [ "$VERIFY_FAILED" -ne 0 ]; then
-          echo 'Ancestry checks failed, abort.'
+          echo 'Commit ancestry checks failed, abort.'
           exit 1
         else
-          echo 'Ancestry checks passed, proceeding.'
+          echo 'Commit ancestry checks passed, proceed.'
         fi
       fi
 
@@ -194,13 +195,15 @@
       COMMIT_SIG=$(git cat-file -p HEAD | awk '/BEGIN PGP/,/END PGP/ {sub(/^gpgsig/,""); sub(/^ /,""); print}')
       COMMIT_EPOCH=$(echo "$COMMIT_SIG" | gpg --list-packets | awk -F '[, ]+' '$3 == "created" {print $4}')
 
-      echo 'Phase 3: Checking system profile and latest commit date...'
+      echo 'Checking system profile and latest commit date...'
       echo "System profile date: $(date -d "@$SYSTEM_EPOCH")"
       echo "Latest commit date:  $(date -d "@$COMMIT_EPOCH")"
 
       if ! [ "$COMMIT_EPOCH" -gt "$SYSTEM_EPOCH" ]; then
-        echo 'Commit signature is older than (or same as) current system profile, abort.'
-        exit 1
+        echo 'Current system profile is newer than commit timestamp, stop.'
+        exit 0
+      else
+        echo 'Current system profile is older than commit timestamp, proceed.'
       fi
 
       echo 'Upgrade checks passed, proceeding with nixos-upgrade.'
