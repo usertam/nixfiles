@@ -32,8 +32,10 @@
       jq
     ];
 
-    # Verify if latest commit is signed, hardcode key signature for now.
-    script = lib.mkBefore ''
+    # Overriding the default upgrade script.
+    # Verify if latest commit is signed with the public key.
+    # If unsigned, accept if it's a valid lockfile upgrade.
+    script = lib.mkBefore (''
       git clone https://github.com/usertam/nixfiles.git "$PWD"
 
       echo 'Trusted key for commit verification:'
@@ -207,6 +209,10 @@
       fi
 
       echo 'Upgrade checks passed, proceeding with nixos-upgrade.'
-    '';
+    '' + lib.optionalString (config.system.autoUpgrade.operation == "switch") ''
+
+      # Always save the built system to boot, before switch.
+      ${lib.getExe pkgs.nixos-rebuild} boot ${toString config.system.autoUpgrade.flags}
+    '');
   };
 }
