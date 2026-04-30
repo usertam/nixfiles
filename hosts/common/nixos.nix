@@ -86,6 +86,9 @@
     )
   );
 
+  # Don't implicitly import zroot even if it exists.
+  boot.zfs.forceImportRoot = lib.mkDefault false;
+
   # Database compatibility defaults.
   system.stateVersion = (lib.mkOverride 900) "26.05";
 }
