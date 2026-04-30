@@ -57,7 +57,8 @@
       fsType = "zfs";
     };
     "/boot" = {
-      device = "/dev/disk/by-label/ESP";
+      # Guess what? You can silently race /dev/disk/by-label/ESP!
+      device = "/dev/disk/by-partuuid/ef6784fc-e176-4dbc-a623-389eab2f76be";
       fsType = "vfat";
       options = [ "fmask=0022" "dmask=0022" ];
     };
