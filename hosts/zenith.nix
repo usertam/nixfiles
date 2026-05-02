@@ -93,20 +93,20 @@
 
   # Bridges.
   systemd.network.netdevs = {
-    "15-vm-br0".netdevConfig = {
-      Name = "vm-br0";
+    "15-vmbr0".netdevConfig = {
+      Name = "vmbr0";
       Kind = "bridge";
     };
-    "15-vm-br1".netdevConfig = {
-      Name = "vm-br1";
+    "15-vmbr1".netdevConfig = {
+      Name = "vmbr1";
       Kind = "bridge";
     };
-    "15-wan-br0".netdevConfig = {
-      Name = "wan-br0";
+    "15-wanbr0".netdevConfig = {
+      Name = "wanbr0";
       Kind = "bridge";
     };
-    "15-lan-br0".netdevConfig = {
-      Name = "lan-br0";
+    "15-lanbr0".netdevConfig = {
+      Name = "lanbr0";
       Kind = "bridge";
     };
   };
@@ -118,8 +118,8 @@
   };
 
   # WAN bridge. Pure L2, no IP on zenith — fabric is the WAN-facing host.
-  systemd.network.networks."20-wan-br0" = {
-    matchConfig.Name = "wan-br0";
+  systemd.network.networks."20-wanbr0" = {
+    matchConfig.Name = "wanbr0";
     networkConfig = {
       LinkLocalAddressing = "no";
       IPv6AcceptRA = false;
@@ -129,8 +129,8 @@
   };
 
   # Bridges for LAN.
-  systemd.network.networks."20-lan-br0" = {
-    matchConfig.Name = "lan-br0";
+  systemd.network.networks."20-lanbr0" = {
+    matchConfig.Name = "lanbr0";
     networkConfig = {
       LinkLocalAddressing = "no";
       IPv6AcceptRA = false;
@@ -140,8 +140,8 @@
   };
 
   # Bridge for VM 0. Configure static IP, DHCP server, default gateway.
-  systemd.network.networks."20-vm-br0" = {
-    matchConfig.Name = "vm-br0";
+  systemd.network.networks."20-vmbr0" = {
+    matchConfig.Name = "vmbr0";
     address = [ "172.16.0.1/20" ];
     routes = lib.singleton {
       Gateway = "172.16.0.10";
@@ -162,8 +162,8 @@
   };
 
   # Bridge for VM 1. Configure higher metric gateway.
-  systemd.network.networks."20-vm-br1" = {
-    matchConfig.Name = "vm-br1";
+  systemd.network.networks."20-vmbr1" = {
+    matchConfig.Name = "vmbr1";
     address = [ "172.16.16.1/20" ];
     routes = lib.singleton {
       Gateway = "172.16.16.10";
@@ -188,7 +188,7 @@
     "25-wan0" = {
       matchConfig.Name = "wan0";
       networkConfig = {
-        Bridge = "wan-br0";
+        Bridge = "wanbr0";
         ConfigureWithoutCarrier = true;
       };
       linkConfig.RequiredForOnline = "no";
@@ -196,7 +196,7 @@
     "25-lan0" = {
       matchConfig.Name = "lan0";
       networkConfig = {
-        Bridge = "lan-br0";
+        Bridge = "lanbr0";
         ConfigureWithoutCarrier = true;
       };
       linkConfig.RequiredForOnline = "no";
@@ -205,15 +205,15 @@
 
   # Open port for DHCP requests.
   networking.firewall.interfaces = {
-    "vm-br0".allowedUDPPorts = [ 67 ];
-    "vm-br1".allowedUDPPorts = [ 67 ];
+    "vmbr0".allowedUDPPorts = [ 67 ];
+    "vmbr1".allowedUDPPorts = [ 67 ];
   };
 
   # Enable Proxmox VE.
   services.proxmox-ve = {
     enable = true;
     ipAddress = "172.16.0.1";
-    bridges = [ "vm-br0" "vm-br1" "wan-br0" "lan-br0" ];
+    bridges = [ "vmbr0" "vmbr1" "wanbr0" "lanbr0" ];
   };
   services.openssh.settings = {
     AcceptEnv = lib.mkForce null;
