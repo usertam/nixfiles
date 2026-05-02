@@ -34,45 +34,34 @@
   systemd.network.enable = true;
   services.resolved.enable = false;
 
-  # Interface naming. Pin interfaces by MAC.
-  systemd.network.links."10-wan" = {
-    matchConfig.MACAddress = "38:05:25:30:8f:7e";
-    linkConfig.Name = "wan0";
-  };
-  systemd.network.links."10-lan" = {
-    matchConfig.MACAddress = "38:05:25:30:8f:7d";
-    linkConfig.Name = "lan0";
-  };
-  systemd.network.links."10-vmbr0" = {
-    matchConfig.MACAddress = "bc:24:11:06:71:cb";
-    linkConfig.Name = "vmbr0";
+  # List of interfaces, pinned by MAC.
+  systemd.network.links = {
+    "10-wan0" = {
+      matchConfig.MACAddress = "00:1a:4a:ad:2a:54";
+      linkConfig.Name = "wan0";
+    };
+    "10-lan0" = {
+      matchConfig.MACAddress = "00:1a:4a:ad:2a:2c";
+      linkConfig.Name = "lan0";
+    };
+    "10-vm0" = {
+      matchConfig.MACAddress = "00:1a:4a:ad:2a:84";
+      linkConfig.Name = "vm0";
+    };
+    "10-vm1" = {
+      matchConfig.MACAddress = "00:1a:4a:ad:2a:c7";
+      linkConfig.Name = "vm1";
+    };
   };
 
-  # WAN, Intel I226-V PCI passthrough.
-  systemd.network.networks."10-wan" = {
+  # WAN. Dynamic config from ISP.
+  systemd.network.networks."10-wan0" = {
     matchConfig.Name = "wan0";
     networkConfig.DHCP = "ipv4";
-    networkConfig.MACVLAN = [ "macvlan0" ];
-    dhcpV4Config.RouteMetric = 0;
   };
 
-  # Secondary WAN, create macvlan0 on wan0. Lower priority.
-  systemd.network.netdevs."20-macvlan0" = {
-    netdevConfig = {
-      Name = "macvlan0";
-      Kind = "macvlan";
-      MACAddress = "38:05:25:c2:4a:04";
-    };
-    macvlanConfig.Mode = "bridge";
-  };
-  systemd.network.networks."20-macvlan0" = {
-    matchConfig.Name = "macvlan0";
-    networkConfig.DHCP = "ipv4";
-    dhcpV4Config.RouteMetric = 10;
-  };
-
-  # LAN, Realtek RTL8125 PCI passthrough. Static + DHCP server.
-  systemd.network.networks."10-lan" = {
+  # LAN. Configure static IP and DHCP server.
+  systemd.network.networks."10-lan0" = {
     matchConfig.Name = "lan0";
     address = [ "192.168.1.1/24" ];
     networkConfig.DHCPServer = true;
@@ -87,10 +76,16 @@
     };
   };
 
-  # Virtio NIC bridged to zenith.
-  systemd.network.networks."10-vmbr0" = {
-    matchConfig.Name = "vmbr0";
-    address = [ "172.16.1.1/20" ];
+  # VM 0. Host handles the DHCP, but we are gateway.
+  systemd.network.networks."10-vm0" = {
+    matchConfig.Name = "vm0";
+    address = [ "172.16.0.10/20" ];
+  };
+
+  # VM 1.
+  systemd.network.networks."10-vm1" = {
+    matchConfig.Name = "vm1";
+    address = [ "172.16.16.10/20" ];
   };
 
   # Firewall. Custom nftables ruleset, NixOS firewall disabled.
@@ -98,13 +93,13 @@
   networking.firewall.enable = false;
 
   networking.nftables.ruleset = ''
-    define WAN = { "wan0", "macvlan0", "wg0", "wg1" }
-    define LAN = { "lan0", "vmbr0" }
+    define WAN = { "wan0", "wg0", "wg1" }
+    define LAN = { "lan0", "vm0", "vm1" }
 
     table inet filter {
       flowtable forward_offload {
         hook ingress priority filter;
-        devices = { "wan0", "macvlan0", "wg0", "wg1", "lan0", "vmbr0" };
+        devices = { "wan0", "wg0", "wg1", "lan0", "vm0", "vm1" };
       }
 
       chain syn_flood {
@@ -128,9 +123,9 @@
         icmpv6 type { echo-request, echo-reply, destination-unreachable, time-exceeded, packet-too-big } accept
         icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit, nd-router-advert } accept
 
-        # Allow DHCP client on wan0 and vmbr0.
-        iifname { "wan0", "vmbr0" } meta nfproto ipv4 udp dport 68 accept
-        iifname { "wan0", "vmbr0" } meta nfproto ipv6 udp dport 546 accept
+        # Allow DHCP client on wan0, vm0 and vm1.
+        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv4 udp dport 68 accept
+        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv6 udp dport 546 accept
 
         # LAN, allow SSH, DNS and DHCP server.
         iifname $LAN tcp dport 22 accept
@@ -148,12 +143,11 @@
         ct state { established, related } accept
 
         iifname $LAN oifname $WAN accept
-        iifname "lan0" oifname "vmbr0" accept
+        iifname "lan0" oifname { "vm0", "vm1" } accept
       }
 
       chain mangle_prerouting {
         type filter hook prerouting priority mangle; policy accept;
-        # VPN policy marks (fwmark 0x64), populated by vpn-policy-routing service.
       }
 
       chain mangle_forward {
@@ -185,6 +179,7 @@
         access-control = [
           "192.168.1.0/24 allow"
           "172.16.0.0/20 allow"
+          "172.16.16.0/20 allow"
           "127.0.0.0/8 allow"
         ];
         local-zone = ''"home." static'';
@@ -220,13 +215,13 @@
         name = "vpn-policy-routing";
         runtimeInputs = with pkgs; [ iproute2 nftables dig gnugrep ];
         text = ''
-          DOMAINS=(
-              claude.ai
-              gemini.google.com
-              chatgpt.com
-              tiktok.com
-              www.tiktok.com
-          )
+          ip link show wg0 >/dev/null 2>&1 || \
+              ip link add wg0 type wireguard
+          ip link show wg1 >/dev/null 2>&1 || \
+              ip link add wg1 type wireguard
+
+          ip link set wg0 up
+          ip link set wg1 up
 
           ip route show table 100 | grep -q "default dev wg0" || \
               ip route add default dev wg0 table 100
@@ -234,8 +229,19 @@
           ip route show table 100 | grep -q "default dev wg1" || \
               ip route append default dev wg1 table 100
 
+          ip route show table 100 | grep -q "blackhole" || \
+              ip route add blackhole default metric 100 table 100
+
           ip rule list | grep -q "fwmark 0x64" || \
               ip rule add fwmark 0x64 table 100 priority 100
+
+          DOMAINS=(
+              claude.ai
+              gemini.google.com
+              chatgpt.com
+              tiktok.com
+              www.tiktok.com
+          )
 
           mapfile -t IPS < <(
               for D in "''${DOMAINS[@]}"; do dig +short A "$D"; done \

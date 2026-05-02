@@ -22,20 +22,8 @@
 
   # Networking.
   networking.useNetworkd = true;
-  networking.usePredictableInterfaceNames = lib.mkForce true;
   systemd.network.enable = true;
   services.resolved.enable = true;
-
-  # Virtio NIC bridged to host.
-  systemd.network.links."10-vmbr0" = {
-    matchConfig.Driver = "virtio_net";
-    linkConfig.Name = "vmbr0";
-  };
-  systemd.network.networks."10-vmbr0" = {
-    matchConfig.Name = "vmbr0";
-    networkConfig.DHCP = "ipv4";
-    dhcpV4Config.RouteMetric = 0;
-  };
 
   # Install development packages.
   nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
