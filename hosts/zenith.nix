@@ -136,9 +136,22 @@
   # The proxmox-ve package ships util-linux's login(1), which uses the "remote"
   # PAM service (via -h flag) for remote logins. Tailscale SSH invokes login -h,
   # and without /etc/pam.d/remote the account phase falls through to pam_deny.
-  security.pam.services."remote" = {
-    unixAuth = true;
-    updateWtmp = true;
-    rules.session.lastlog.settings.silent = lib.mkForce false;
-  };
+  security.pam =
+    let
+      pkgs' = inputs.proxmox-nixos.inputs.nixpkgs-stable.legacyPackages.${system};
+    in
+    {
+      package = pkgs'.pam;
+      services."remote" = {
+        unixAuth = true;
+        updateWtmp = true;
+        rules.session.lastlog = {
+          modulePath = lib.mkForce "${pkgs'.util-linux.lastlog}/lib/security/pam_lastlog2.so";
+          settings.silent = lib.mkForce false;
+        };
+      };
+    };
+
+  # Fallback password for web portal login.
+  users.users.root.hashedPassword = "$y$j9T$OJuNmMHbAjNdSc4NzVylD1$8TXgt2z07V6V12M1uPk0DylMqJMW7vpqLXHofxzHjy8";
 }
