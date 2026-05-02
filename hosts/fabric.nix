@@ -224,7 +224,7 @@
           ip link set wg1 up
 
           ip route show table 100 | grep -q "default dev wg0" || \
-              ip route add default dev wg0 table 100
+              ip route append default dev wg0 table 100
 
           ip route show table 100 | grep -q "default dev wg1" || \
               ip route append default dev wg1 table 100
