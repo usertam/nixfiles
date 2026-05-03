@@ -14,7 +14,7 @@
   # Boot.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelParams = [ "console=ttyS0" ];
+  boot.kernelParams = [ "console=tty0" "console=ttyS0" ];
 
   boot.initrd.availableKernelModules = [
     "virtio_pci" "virtio_scsi" "virtio_blk" "virtio_net"
