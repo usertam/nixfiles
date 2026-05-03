@@ -9,7 +9,7 @@
   ];
 
   # Host identity.
-  networking.hostName = "fabric";
+  networking.hostName = lib.mkDefault "fabric";
 
   # Mission critical machine, do not switch.
   system.autoUpgrade.operation = "boot";
@@ -17,7 +17,7 @@
   # Boot.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelParams = [ "console=ttyS0" ];
+  boot.kernelParams = [ "console=tty0" "console=ttyS0" ];
 
   boot.initrd.availableKernelModules = [
     "virtio_pci" "virtio_scsi" "virtio_blk" "virtio_net"
@@ -37,19 +37,19 @@
   # List of interfaces, pinned by MAC.
   systemd.network.links = {
     "10-wan0" = {
-      matchConfig.MACAddress = "00:1a:4a:ad:2a:54";
+      matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:54";
       linkConfig.Name = "wan0";
     };
     "10-lan0" = {
-      matchConfig.MACAddress = "00:1a:4a:ad:2a:2c";
+      matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:2c";
       linkConfig.Name = "lan0";
     };
     "10-vm0" = {
-      matchConfig.MACAddress = "00:1a:4a:ad:2a:84";
+      matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:84";
       linkConfig.Name = "vm0";
     };
     "10-vm1" = {
-      matchConfig.MACAddress = "00:1a:4a:ad:2a:c7";
+      matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:c7";
       linkConfig.Name = "vm1";
     };
   };
@@ -60,32 +60,22 @@
     networkConfig.DHCP = "ipv4";
   };
 
-  # LAN. Configure static IP and DHCP server.
+  # LAN. Configure static IP only, kea handles DHCP via VIP.
   systemd.network.networks."10-lan0" = {
     matchConfig.Name = "lan0";
-    address = [ "192.168.1.1/24" ];
-    networkConfig.DHCPServer = true;
-    dhcpServerConfig = {
-      PoolOffset = 100;
-      PoolSize = 154;
-      DefaultLeaseTimeSec = 604800; # 7 days
-      EmitDNS = true;
-      DNS = [ "192.168.1.1" ];
-      EmitRouter = true;
-      Router = [ "192.168.1.1" ];
-    };
+    address = lib.mkDefault [ "192.168.1.2/24" ];
   };
 
-  # VM 0. Host handles the DHCP, but we are gateway.
+  # VM 0. Host handles DHCP.
   systemd.network.networks."10-vm0" = {
     matchConfig.Name = "vm0";
-    address = [ "172.16.0.10/20" ];
+    address = lib.mkDefault [ "172.16.0.2/20" ];
   };
 
   # VM 1.
   systemd.network.networks."10-vm1" = {
     matchConfig.Name = "vm1";
-    address = [ "172.16.16.10/20" ];
+    address = lib.mkDefault [ "172.16.16.2/20" ];
   };
 
   # Firewall. Custom nftables ruleset, NixOS firewall disabled.
@@ -123,16 +113,18 @@
         icmpv6 type { echo-request, echo-reply, destination-unreachable, time-exceeded, packet-too-big } accept
         icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit, nd-router-advert } accept
 
-        # Allow DHCP client on wan0, vm0 and vm1.
-        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv4 udp dport 68 accept
-        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv6 udp dport 546 accept
+        # Accept DHCP replies on interfaces.
+        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv4 udp dport bootpc accept
+        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv6 udp dport dhcpv6-client accept
 
-        # LAN, allow SSH, DNS and DHCP server.
-        iifname $LAN tcp dport 22 accept
-        iifname $LAN udp dport 53 accept
-        iifname $LAN tcp dport 53 accept
-        iifname $LAN meta nfproto ipv4 udp dport 67 accept
-        iifname $LAN meta nfproto ipv6 udp dport 547 accept
+        # LAN. Accept SSH, DNS, DHCP requests, and VRRP/AH.
+        iifname $LAN tcp dport ssh accept
+        iifname $LAN udp dport domain accept
+        iifname $LAN tcp dport domain accept
+        iifname $LAN meta nfproto ipv4 udp dport bootps accept
+        iifname $LAN meta nfproto ipv6 udp dport dhcpv6-server accept
+        iifname $LAN meta l4proto vrrp accept
+        iifname $LAN meta l4proto ah accept
       }
 
       chain forward {
@@ -170,12 +162,120 @@
     sed -i '/flow add @ft/d' ruleset.conf
   '';
 
-  # DNS. Unbound resolver on all LAN interfaces.
+  # DHCP server. Bound to the LAN VIP, managed by keepalived.
+  services.kea.dhcp4 = {
+    enable = true;
+    settings = {
+      interfaces-config = {
+        interfaces = [ "lan0/192.168.1.1" ];
+        service-sockets-require-all = false;
+        service-sockets-max-retries = 5;
+        service-sockets-retry-wait-time = 5000;
+      };
+      valid-lifetime = 604800;
+      subnet4 = lib.singleton {
+        id = 1;
+        subnet = "192.168.1.0/24";
+        pools = lib.singleton {
+          pool = "192.168.1.11 - 192.168.1.253";
+        };
+        option-data = [
+          { name = "routers"; data = "192.168.1.1"; }
+          { name = "domain-name-servers"; data = "192.168.1.1"; }
+        ];
+      };
+    };
+  };
+  # Let keepalived manages its lifecycle via notify_*.
+  systemd.services.kea-dhcp4-server.wantedBy = lib.mkForce [ ];
+
+  # VRRP. Instances bundled in sync_group ROUTER so they failover together.
+  services.keepalived = {
+    enable = true;
+
+    # Health check: ping the WAN gateway (whatever DHCP gave us) via wan0.
+    # Detects gateway reachability failures while wan0 link stays up;
+    # carrier loss is handled instantly by track_interface below.
+    vrrpScripts.check_wan = {
+      script = lib.getExe (pkgs.writeShellApplication {
+        name = "check-wan";
+        runtimeInputs = with pkgs; [ iproute2 gawk iputils ];
+        text = ''
+          gw=$(ip -4 route show default dev wan0 | awk '{print $3; exit}')
+          [ -n "$gw" ] || exit 1
+          ping -I wan0 -n -q -c 2 -W 1 "$gw" &>/dev/null
+        '';
+      });
+      interval = 3;
+      timeout = 2;
+      fall = 3;
+      rise = 2;
+      weight = -200;
+      user = "root";
+      group = "root";
+    };
+
+    vrrpInstances = {
+      lan0 = {
+        interface = "lan0";
+        state = lib.mkDefault "MASTER";
+        virtualRouterId = 51;
+        priority = lib.mkDefault 200;
+        virtualIps = lib.singleton {
+          addr = "192.168.1.1/24";
+        };
+      };
+      vm0 = {
+        interface = "vm0";
+        state = lib.mkDefault "MASTER";
+        virtualRouterId = 52;
+        priority = lib.mkDefault 200;
+        virtualIps = lib.singleton {
+          addr = "172.16.0.10/20";
+        };
+      };
+      vm1 = {
+        interface = "vm1";
+        state = lib.mkDefault "MASTER";
+        virtualRouterId = 53;
+        priority = lib.mkDefault 200;
+        virtualIps = lib.singleton {
+          addr = "172.16.16.10/20";
+        };
+      };
+    };
+
+    extraConfig = ''
+      global_defs {
+        enable_script_security
+        script_user root
+      }
+      vrrp_sync_group ROUTER {
+        group { lan0 vm0 vm1 }
+        track_interface { wan0 }
+        track_script { check_wan }
+        notify_master "${pkgs.systemd}/bin/systemctl start kea-dhcp4-server"
+        notify_backup "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
+        notify_fault  "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
+        notify_stop   "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
+      }
+    '';
+  };
+
+  # DNS. Unbound resolver bound to the LAN-side VIPs (claimed by keepalived).
   services.unbound = {
     enable = true;
     settings = {
       server = {
-        interface = [ "192.168.1.1" "172.16.1.1" "127.0.0.1" ];
+        # ip-freebind lets unbound start before VRRP claims the VIPs (BACKUP state).
+        ip-freebind = "yes";
+
+        interface = [
+          "192.168.1.1"
+          "172.16.0.10"
+          "172.16.16.10"
+          "127.0.0.1"
+        ];
         access-control = [
           "192.168.1.0/24 allow"
           "172.16.0.0/20 allow"
