@@ -15,7 +15,7 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Enable ZFS support.
-  boot.supportedFilesystems = [ "zfs" ];
+  boot.supportedFilesystems.zfs = true;
   boot.zfs.forceImportRoot = true;
   boot.zfs.extraPools = [ "tank" ];
 

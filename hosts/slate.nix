@@ -9,8 +9,7 @@
   # Host identity.
   networking.hostName = "slate";
 
-  # Use latest kernel, but disable ZFS support.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Disable ZFS support to have the latest kernel. 
   boot.supportedFilesystems.zfs = lib.mkForce false;
 
   # Make release image.

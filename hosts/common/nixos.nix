@@ -92,6 +92,12 @@
     )
   );
 
+  # Use the latest kernel when possible.
+  boot.kernelPackages = with pkgs;
+    if config.boot.zfs.enabled && linuxPackages_latest.zfs_unstable.meta.broken
+    then linuxPackages
+    else linuxPackages_latest;
+
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
 

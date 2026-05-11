@@ -21,7 +21,7 @@
   ];
 
   # Enable ZFS support.
-  boot.supportedFilesystems = [ "zfs" ];
+  boot.supportedFilesystems.zfs = true;
   boot.zfs.extraPools = [ "tank" ];
 
   # Networking.

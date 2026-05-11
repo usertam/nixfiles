@@ -31,7 +31,7 @@
   ];
 
   # Enable ZFS support.
-  boot.supportedFilesystems = [ "zfs" ];
+  boot.supportedFilesystems.zfs = true;
   boot.zfs.forceImportRoot = true;
 
   # Enable microcode updates.
