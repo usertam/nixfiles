@@ -69,6 +69,12 @@
     rules.session.lastlog.settings.silent = lib.mkForce false;
   };
 
+  # Reserve memory for sshd, and for parent slice.
+  systemd.slices.system.sliceConfig.MemoryMin = lib.mkDefault "64M";
+  systemd.services.sshd = lib.mkIf config.services.openssh.enable {
+    serviceConfig.MemoryMin = "16M";
+  };
+
   # Extra configurations to apply, when built as a VM.
   virtualisation.vmVariant = {
     virtualisation.diskSize = lib.mkDefault 16384; # 16 GiB
