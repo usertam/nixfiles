@@ -2,12 +2,6 @@
 
 let
   btop' = pkgs.btop.overrideAttrs (prev: {
-    src = pkgs.fetchFromGitHub {
-      owner = "aristocratos";
-      repo = "btop";
-      rev = "6164470cb8ed316accc2b5662dadee49036f9b49";
-      hash = "sha256-daVlChULDoMEMqIlJi8TeJa+7IGqC8y0kLQI6i9uyks=";
-    };
     patches = (prev.patches or []) ++ [
       (pkgs.fetchpatch {
         name = "remove-terminal-size-limit.patch";
