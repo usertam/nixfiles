@@ -267,6 +267,9 @@
     enable = true;
     settings = {
       server = {
+        # respip module is required for rpz blocks to take effect.
+        module-config = ''"respip validator iterator"'';
+
         # ip-freebind lets unbound start before VRRP claims the VIPs (BACKUP state).
         ip-freebind = "yes";
 
@@ -305,6 +308,12 @@
         prefetch-key = true;
       };
       remote-control.control-enable = true;
+      rpz = {
+        name = "rpz.hagezi-ultimate";
+        zonefile = "hagezi-ultimate.zone";
+        url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/rpz/ultimate.txt";
+        rpz-action-override = "nxdomain";
+      };
     };
   };
 
