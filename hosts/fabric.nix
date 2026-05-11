@@ -60,7 +60,8 @@
     networkConfig.DHCP = "ipv4";
   };
 
-  # LAN. Configure static IP only, kea handles DHCP via VIP.
+  # LAN. Configure static IP only.
+  # kea handles DHCP and keepalived handles gateway VIP.
   systemd.network.networks."10-lan0" = {
     matchConfig.Name = "lan0";
     address = lib.mkDefault [ "192.168.1.2/24" ];
@@ -125,6 +126,9 @@
         iifname $LAN meta nfproto ipv6 udp dport dhcpv6-server accept
         iifname $LAN meta l4proto vrrp accept
         iifname $LAN meta l4proto ah accept
+
+        # VM 0. Accept kea control socket messages.
+        iifname "vm0" tcp dport 8000 ip saddr { 172.16.0.2, 172.16.0.3 } accept
       }
 
       chain forward {
@@ -162,17 +166,53 @@
     sed -i '/flow add @ft/d' ruleset.conf
   '';
 
-  # DHCP server. Bound to the LAN VIP, managed by keepalived.
+  # DHCP server. Both nodes always run kea; the HA hook decides
+  # which node answers DHCP and shadows leases to the other.
   services.kea.dhcp4 = {
     enable = true;
     settings = {
-      interfaces-config = {
-        interfaces = [ "lan0/192.168.1.1" ];
-        service-sockets-require-all = false;
-        service-sockets-max-retries = 5;
-        service-sockets-retry-wait-time = 5000;
-      };
+      interfaces-config.interfaces = [ "lan0" ];
       valid-lifetime = 604800;
+
+      # HTTP control channel for the HA hook to talk to the partner kea.
+      # Bound on vm0 so inter-router chat stays off the main LAN.
+      control-sockets = lib.singleton {
+        socket-type = "http";
+        socket-address = {
+          fabric = "172.16.0.2";
+          velvet = "172.16.0.3";
+        }.${config.networking.hostName};
+        socket-port = 8000;
+      };
+
+      # HA hook, hot-standby.
+      # lease_cmds is required so HA can call lease4-get-page during sync.
+      hooks-libraries = [
+        { library = "${pkgs.kea}/lib/kea/hooks/libdhcp_lease_cmds.so"; }
+        {
+          library = "${pkgs.kea}/lib/kea/hooks/libdhcp_ha.so";
+          parameters.high-availability = lib.singleton {
+            this-server-name = config.networking.hostName;
+            mode = "hot-standby";
+            # Reuse the top-level control socket; don't open a second listener.
+            multi-threading = {
+              enable-multi-threading = true;
+              http-dedicated-listener = false;
+            };
+            sync-leases = true;
+            send-lease-updates = true;
+            heartbeat-delay = 1000;
+            max-response-delay = 6000;
+            # Take over when heartbeat fails and client request is dropped.
+            max-unacked-clients = 1;
+            peers = [
+              { name = "fabric"; url = "http://172.16.0.2:8000/"; role = "primary"; auto-failover = true; }
+              { name = "velvet"; url = "http://172.16.0.3:8000/"; role = "standby"; auto-failover = true; }
+            ];
+          };
+        }
+      ];
+
       subnet4 = lib.singleton {
         id = 1;
         subnet = "192.168.1.0/24";
@@ -184,10 +224,15 @@
           { name = "domain-name-servers"; data = "192.168.1.1"; }
         ];
       };
+
+      # Silence per-heartbeat COMMAND_RECEIVED chatter from the HA hook.
+      loggers = lib.singleton {
+        name = "kea-dhcp4.commands";
+        severity = "WARN";
+        output_options = lib.singleton { output = "stdout"; };
+      };
     };
   };
-  # Let keepalived manages its lifecycle via notify_*.
-  systemd.services.kea-dhcp4-server.wantedBy = lib.mkForce [ ];
 
   # VRRP. Instances bundled in sync_group ROUTER so they failover together.
   services.keepalived = {
@@ -252,12 +297,10 @@
       }
       vrrp_sync_group ROUTER {
         group { lan0 vm0 vm1 }
-        track_interface { wan0 }
+        track_interface { lan0 wan0 }
         track_script { check_wan }
         notify_master "${pkgs.systemd}/bin/systemctl start kea-dhcp4-server"
-        notify_backup "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
         notify_fault  "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
-        notify_stop   "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
       }
     '';
   };
