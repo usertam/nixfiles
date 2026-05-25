@@ -137,6 +137,23 @@
         echo "$CHANGESET" | jq -r '.[] | "    + \(.name) (aka \(.type):\(.owner)/\(.repo)): \n        \(.old_rev) -> \(.new_rev)"'
 
         echo 'Verifying commit ancestry via GitHub API...'
+
+        gh_api() {
+          local url key val raw
+          url="https://api.github.com/$1"
+          key="''${2:-.}"
+          raw=$(curl -s -i "$url")
+          val=$(jq -r "$key" <<< "''${raw#*$'\r\n\r\n'}")
+          if [ -z "$val" ] || [ "$val" = 'null' ]; then
+            mkdir -p /tmp/nixos-upgrade
+            echo "$raw" >> /tmp/nixos-upgrade/curl.log
+            echo >&2 "    - \`curl '$url' | jq -r '$key'\` returned null, full response dumped at /tmp/nixos-upgrade/curl.log"
+            echo 'null'
+          else
+            echo "$val"
+          fi
+        }
+
         VERIFY_FAILED=0
         for i in $(seq 0 $((CHANGE_COUNT - 1))); do
           NAME=$(echo "$CHANGESET" | jq -r ".[$i].name")
@@ -156,24 +173,28 @@
 
           # Resolve default branch if ref is null.
           if [ "$REF" = "null" ]; then
-            REF=$(curl -s "https://api.github.com/repos/$OWNER/$REPO" | jq -r '.default_branch')
-            echo "    + $NAME: resolved default branch to $REF"
+            REF=$(gh_api "repos/$OWNER/$REPO" '.default_branch')
+            if [ "$REF" != "null" ]; then
+              echo "    + $NAME: resolved default branch to $REF"
+            else
+              echo "    - $NAME: failed to resolve default branch for $OWNER/$REPO"
+              VERIFY_FAILED=1
+              continue
+            fi
           fi
 
           # Check A: old_rev is ancestor of new_rev.
-          STATUS_A=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/compare/$OLD_REV...$NEW_REV" \
-            | jq -r '.status')
-          if [ "$STATUS_A" != "ahead" ]; then
+          STATUS_A=$(gh_api "repos/$OWNER/$REPO/compare/$OLD_REV...$NEW_REV" '.status')
+          if [ "$STATUS_A" = "ahead" ]; then
+            echo "    + $NAME: ''${OLD_REV:0:7}...''${NEW_REV:0:7} is $STATUS_A"
+          else
             echo "    - $NAME: ''${OLD_REV:0:7}...''${NEW_REV:0:7} is $STATUS_A, expected ahead"
             VERIFY_FAILED=1
             continue
-          else
-            echo "    + $NAME: ''${OLD_REV:0:7}...''${NEW_REV:0:7} is $STATUS_A"
           fi
 
           # Check B: new_rev is on the tracked branch.
-          STATUS_B=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/compare/$NEW_REV...$REF" \
-            | jq -r '.status')
+          STATUS_B=$(gh_api "repos/$OWNER/$REPO/compare/$NEW_REV...$REF" '.status')
           case "$STATUS_B" in
             ahead|identical)
               echo "    + $NAME: ''${NEW_REV:0:7}...''${REF:0:7} is $STATUS_B"
