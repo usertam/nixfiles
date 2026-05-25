@@ -375,11 +375,10 @@
           ip link set wg0 up
           ip link set wg1 up
 
-          ip route show table 100 | grep -q "default dev wg0" || \
-              ip route append default dev wg0 table 100
-
-          ip route show table 100 | grep -q "default dev wg1" || \
-              ip route append default dev wg1 table 100
+          ip route show table 100 | grep -q "^default" || \
+              ip route add default table 100 \
+                  nexthop dev wg0 weight 1 \
+                  nexthop dev wg1 weight 1
 
           ip route show table 100 | grep -q "blackhole" || \
               ip route add blackhole default metric 100 table 100
@@ -389,7 +388,6 @@
 
           DOMAINS=(
               claude.ai
-              gemini.google.com
               chatgpt.com
               tiktok.com
               www.tiktok.com

@@ -32,6 +32,7 @@ in
     usbutils
     wireguard-tools
   ] ++ lib.optionals pkgs.stdenv.isLinux [
+    conntrack-tools
     ethtool
     nftables
     ghostty.terminfo
