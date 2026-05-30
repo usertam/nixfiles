@@ -69,10 +69,18 @@
     rules.session.lastlog.settings.silent = lib.mkForce false;
   };
 
-  # Reserve memory for sshd, and for parent slice.
+  # Keep sshd reachable under system resource exhaustion (memory, PID, FD).
+  # MemoryMin on the parent slice is required for the sshd reservation to propagate.
   systemd.slices.system.sliceConfig.MemoryMin = lib.mkDefault "64M";
   systemd.services.sshd = lib.mkIf config.services.openssh.enable {
-    serviceConfig.MemoryMin = "16M";
+    serviceConfig = {
+      OOMScoreAdjust = -1000;
+      MemoryMin = "16M";
+      TasksMax = "infinity";
+      LimitNOFILE = "65536:524288";
+      IOWeight = 10000;
+      CPUWeight = 10000;
+    };
   };
 
   # Extra configurations to apply, when built as a VM.
