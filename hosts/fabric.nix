@@ -388,7 +388,10 @@
 
           DOMAINS=(
               claude.ai
+              anthropic.com
               chatgpt.com
+              openai.com
+              auth.openai.com
               tiktok.com
               www.tiktok.com
           )
