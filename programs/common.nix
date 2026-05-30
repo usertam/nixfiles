@@ -25,6 +25,7 @@ in
     gptfdisk
     gnupg
     iperf3
+    lsof
     pciutils
     nmap
     socat
