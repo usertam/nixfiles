@@ -100,11 +100,25 @@
     )
   );
 
-  # Use the latest kernel when possible.
-  boot.kernelPackages = with pkgs;
-    if config.boot.zfs.enabled && linuxPackages_latest.zfs_unstable.meta.broken
-    then linuxPackages
-    else linuxPackages_latest;
+  # Use the mainline or latest kernel when possible, subject to ZFS.
+  # Rebuild the selected kernel with structuredExtraConfig.
+  boot.kernelPackages =
+    with pkgs;
+    let
+      base =
+        if !config.boot.zfs.enabled then
+          linuxPackages_testing
+        else if !linuxPackages_latest.zfs_unstable.meta.broken then
+          linuxPackages_latest
+        else
+          linuxPackages;
+      kernel = base.kernel.override {
+        structuredExtraConfig = with lib.kernel; {
+          LIVEPATCH = yes;
+        };
+      };
+    in
+    linuxPackagesFor kernel;
 
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
