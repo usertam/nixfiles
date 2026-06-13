@@ -26,6 +26,7 @@
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
     "net.ipv6.conf.all.forwarding" = 1;
+    "net.netfilter.nf_conntrack_max" = 262144;
   };
 
   # Networking.
@@ -409,25 +410,14 @@
 
           SET="$(IFS=', '; echo "''${IPS[*]}")"
 
-          EXISTING=$(
-              nft -a list chain inet filter mangle_prerouting 2>/dev/null \
-              | grep "vpn-policy-routing" \
-              | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-              || true
-          )
+          nft add set inet filter vpn_targets '{ type ipv4_addr; flags interval; }'
+          nft -a list chain inet filter mangle_prerouting 2>/dev/null | grep -q "vpn-policy-routing" \
+              || nft add rule inet filter mangle_prerouting \
+                  ip daddr @vpn_targets meta mark set 0x64 comment "vpn-policy-routing"
 
-          if [[ "$(printf '%s\n' "''${IPS[@]}")" != "$EXISTING" ]]; then
-              nft -a list chain inet filter mangle_prerouting 2>/dev/null \
-              | grep "vpn-policy-routing" | grep -oP 'handle \K[0-9]+' \
-              | while read -r H; do
-                  nft delete rule inet filter mangle_prerouting handle "$H"
-              done || true
-              nft insert rule inet filter mangle_prerouting \
-                  ip daddr "{ $SET }" meta mark set 0x64 comment "vpn-policy-routing"
-              echo "mangle rule updated: { $SET }"
-          else
-              echo "mangle rule already up to date"
-          fi
+          # Atomically refresh the vpn_targets set.
+          printf 'flush set inet filter vpn_targets\nadd element inet filter vpn_targets { %s }\n' "$SET" | nft -f -
+          echo "vpn_targets updated: { $SET }"
 
           if ! nft -a list chain inet filter forward 2>/dev/null | grep -q "vpn-policy-routing-fwd"; then
               nft insert rule inet filter forward \
