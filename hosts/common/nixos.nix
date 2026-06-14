@@ -100,13 +100,13 @@
     )
   );
 
-  # Use the mainline or latest kernel when possible, subject to ZFS.
+  # Use the mainline or latest kernel when possible, subject to modules needed.
   # Rebuild the selected kernel with structuredExtraConfig.
   boot.kernelPackages =
     with pkgs;
     let
       base =
-        if !config.boot.zfs.enabled then
+        if (!config.boot.zfs.enabled && !config.virtualisation.virtualbox.host.enable) then
           linuxPackages_testing
         else if !linuxPackages_latest.zfs_unstable.meta.broken then
           linuxPackages_latest
@@ -118,7 +118,7 @@
         };
       };
     in
-    linuxPackagesFor kernel;
+    lib.mkDefault (linuxPackagesFor kernel);
 
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
