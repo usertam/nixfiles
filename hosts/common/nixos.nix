@@ -44,7 +44,7 @@
   # Mostly for user; not too worried about services, as systemd sets it to hard limit already.
   # You can check /proc/<pid>/limits to be sure.
   systemd.settings.Manager.DefaultLimitNOFILE = "65536:524288";
-  systemd.user.extraConfig = "DefaultLimitNOFILE=65536:524288";
+  systemd.user.settings.Manager.DefaultLimitNOFILE = "65536:524288";
   security.pam.loginLimits = [
     { domain = "*"; type = "soft"; item = "nofile"; value = "65536"; }
     { domain = "*"; type = "hard"; item = "nofile"; value = "524288"; }
