@@ -6,7 +6,6 @@
     ../../programs/common.nix
     ../../programs/nix.nix
     ../../programs/shell.nix
-    ../../services/darwin-builder.nix
     ../../services/openssh.nix
     ../../services/tailscale.nix
   ];

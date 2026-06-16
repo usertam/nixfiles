@@ -1,4 +1,4 @@
-{ specialArgs, lib, pkgs, ... }:
+{ lib, pkgs, system, ... }:
 
 let
   btop' = pkgs.btop.overrideAttrs (prev: {
@@ -49,9 +49,8 @@ in
         set -g status-style bg=default,fg=green
       '';
     };
-  } 
-  # Hack around nix.linux-builder with specialArgs and system.
-  // lib.optionalAttrs (lib.hasAttr "system" specialArgs && lib.hasSuffix "-linux" specialArgs.system) {
+  }
+  // lib.optionalAttrs (lib.hasSuffix "-linux" system) {
     git = {
       enable = true;
       config = {

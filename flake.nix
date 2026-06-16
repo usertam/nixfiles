@@ -39,7 +39,6 @@
           specialArgs = { inherit inputs system; };
         };
       in {
-        stub = withModules [ ./hosts/stub.nix ];
         gale = withModules [ ./hosts/gale.nix ];
         work = withModules [ ./hosts/work.nix ];
       };
