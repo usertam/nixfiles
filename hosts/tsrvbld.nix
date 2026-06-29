@@ -75,7 +75,7 @@
 
   services.resolved = {
     enable = true;
-    fallbackDns = [ "1.1.1.1" ];
+    settings.Resolve.FallbackDNS = [ "1.1.1.1" ];
   };
 
   # Enable X11 server and keymap.
