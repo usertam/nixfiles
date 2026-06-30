@@ -106,7 +106,7 @@
     with pkgs;
     let
       base =
-        if (!config.boot.zfs.enabled && !config.virtualisation.virtualbox.host.enable) then
+        if !config.boot.zfs.enabled then
           linuxPackages_testing
         else if !linuxPackages_latest.zfs_unstable.meta.broken then
           linuxPackages_latest
@@ -118,7 +118,16 @@
         };
       };
     in
-    lib.mkDefault (linuxPackagesFor kernel);
+    lib.mkDefault ((linuxPackagesFor kernel).extend (_: prev: {
+      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2.8-" old.version) {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace vboxdrv/linux/SUPDrv-linux.c \
+            --replace-fail \
+              'RTLNX_VER_MIN(6,16,0) && defined(CONFIG_MODULES)' \
+              'RTLNX_VER_MIN(6,16,0) && RTLNX_VER_MAX(7,1,0) && defined(CONFIG_MODULES)'
+        '';
+      });
+    }));
 
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
