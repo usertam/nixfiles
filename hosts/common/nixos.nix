@@ -119,12 +119,25 @@
       };
     in
     lib.mkDefault ((linuxPackagesFor kernel).extend (_: prev: {
-      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2.8-" old.version) {
+      # virtualbox-modules 7.2.10's vboxnetadp calls strncpy(), which Linux 7.2
+      # removed from <linux/string.h>. Swap the three call sites for the kernel's
+      # null-terminating strscpy() (the trailing manual NUL termination is then
+      # redundant but harmless). Scoped to 7.2.10 via --replace-fail so a future
+      # bump that fixes this upstream fails loudly instead of silently misapplying.
+      # (7.2.10 already fixed the earlier 7.1 kvm_enable_virtualization breakage.)
+      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2.10-" old.version) {
         postPatch = (old.postPatch or "") + ''
-          substituteInPlace vboxdrv/linux/SUPDrv-linux.c \
+          substituteInPlace vboxnetadp/VBoxNetAdp.c \
             --replace-fail \
-              'RTLNX_VER_MIN(6,16,0) && defined(CONFIG_MODULES)' \
-              'RTLNX_VER_MIN(6,16,0) && RTLNX_VER_MAX(7,1,0) && defined(CONFIG_MODULES)'
+              'strncpy(pThis->szName, pcszName, sizeof(pThis->szName) - 1);' \
+              'strscpy(pThis->szName, pcszName, sizeof(pThis->szName));'
+          substituteInPlace vboxnetadp/linux/VBoxNetAdp-linux.c \
+            --replace-fail \
+              'strncpy(pThis->szName, pNetDev->name, sizeof(pThis->szName));' \
+              'strscpy(pThis->szName, pNetDev->name, sizeof(pThis->szName));' \
+            --replace-fail \
+              'strncpy(Req.szName, pAdp->szName, sizeof(Req.szName) - 1);' \
+              'strscpy(Req.szName, pAdp->szName, sizeof(Req.szName));'
         '';
       });
     }));
