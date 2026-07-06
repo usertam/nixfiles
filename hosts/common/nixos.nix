@@ -140,6 +140,20 @@
               'strscpy(Req.szName, pAdp->szName, sizeof(Req.szName));'
         '';
       });
+
+      # ena (amzn-drivers 2.17.0) on host castor: Linux 7.2 changed
+      # page_pool_get_stats() to return void, so ena_ethtool.c's bool-style
+      # check no longer compiles. Call it unconditionally once the page pool is
+      # known non-NULL. Prepended so it runs at sourceRoot (before ena's own
+      # postPatch cd's into the module dir); scoped to 2.17.0 via --replace-fail.
+      ena = prev.ena.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "2.17.0" old.version) {
+        postPatch = ''
+          substituteInPlace kernel/linux/ena/ena_ethtool.c \
+            --replace-fail \
+              $'if (!pool || !page_pool_get_stats(pool, &stats))\n\t\t\tcontinue;' \
+              $'if (!pool)\n\t\t\tcontinue;\n\t\tpage_pool_get_stats(pool, &stats);'
+        '' + (old.postPatch or "");
+      });
     }));
 
   # Don't implicitly import zroot even if it exists.
