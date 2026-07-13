@@ -6,6 +6,8 @@
     lanzaboote.url = "github:nix-community/lanzaboote";
     lanzaboote.inputs.nixpkgs.follows = "nixpkgs";
     proxmox-nixos.url = "github:SaumonNet/proxmox-nixos";
+    niks3.url = "github:Mic92/niks3";
+    niks3.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, darwin, ... }@inputs: {
@@ -31,6 +33,7 @@
         slate = withModules [ ./hosts/slate.nix ];
         castor = withModules [ ./hosts/castor.nix ];
         pollux = withModules [ ./hosts/pollux.nix ];
+        thaum = withModules [ ./hosts/thaum.nix ];
       };
 
       darwinConfigurations = let
