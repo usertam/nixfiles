@@ -19,7 +19,7 @@
 
     s3 = {
       endpoint = "98c7fa0ff64c0acb3bcafb1cfd60e43f.r2.cloudflarestorage.com";
-      bucket = "niks3-cache";
+      bucket = "niks3";
       region = "auto";
       accessKeyFile = "/var/lib/niks3/s3-access-key";
       secretKeyFile = "/var/lib/niks3/s3-secret-key";
