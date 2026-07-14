@@ -7,6 +7,9 @@ on:
     - master
   pull_request:
 
+permissions:
+  id-token: write
+
 jobs:
   build-linux:
     name: Build Linux
@@ -70,14 +73,10 @@ jobs:
     - uses: actions/checkout@main
       with:
         ref: ${{github.ref}}
-    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: NixOS/nix-installer-action@main
+    - uses: Mic92/niks3-action@main
       with:
-        determinate: false
-    - uses: DeterminateSystems/magic-nix-cache-action@main
-    - uses: cachix/cachix-action@master
-      with:
-        name: usertam-nixfiles
-        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        server-url: https://niks3.usertam.dev
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'toplevel')
       run: |
@@ -112,15 +111,10 @@ jobs:
     - uses: actions/checkout@main
       with:
         ref: ${{github.ref}}
-    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: NixOS/nix-installer-action@main
+    - uses: Mic92/niks3-action@main
       with:
-        determinate: false
-        mac-case-sensitive: true
-    - uses: DeterminateSystems/magic-nix-cache-action@main
-    - uses: cachix/cachix-action@master
-      with:
-        name: usertam-nixfiles
-        authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
+        server-url: https://niks3.usertam.dev
     - name: Build ${{matrix.config}}.toplevel
       run: |
         nix build -L --keep-going .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel
