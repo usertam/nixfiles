@@ -37,6 +37,9 @@ jobs:
         - config: fabric
           system: x86_64-linux
           builds: [ toplevel, release, vm ]
+        - config: velvet
+          system: x86_64-linux
+          builds: [ toplevel, release, vm ]
         - config: lithos
           system: x86_64-linux
           builds: [ toplevel, release, vm ]
@@ -44,6 +47,9 @@ jobs:
           system: x86_64-linux
           builds: [ toplevel, release, vm ]
         - config: tsrvbld
+          system: x86_64-linux
+          builds: [ toplevel, vm ]
+        - config: thaum
           system: x86_64-linux
           builds: [ toplevel, vm ]
         - config: castor
@@ -97,6 +103,10 @@ jobs:
 
   build-darwin:
     name: Build Darwin
+    strategy:
+      matrix:
+        config: [ gale, work ]
+      fail-fast: false
     runs-on: macos-15
     steps:
     - uses: actions/checkout@main
@@ -111,9 +121,9 @@ jobs:
       with:
         name: usertam-nixfiles
         authToken: ${{secrets.CACHIX_AUTH_TOKEN}}
-    - name: Build gale.toplevel
+    - name: Build ${{matrix.config}}.toplevel
       run: |
-        nix build -L --keep-going .#darwinConfigurations.gale.config.system.build.toplevel
+        nix build -L --keep-going .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel
 
   build-status:
     name: Build Status
