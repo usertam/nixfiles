@@ -7,6 +7,13 @@
 
   services.niks3 = {
     enable = true;
+
+    serverPackage = inputs.niks3.packages.${pkgs.stdenv.hostPlatform.system}.niks3-server.overrideAttrs {
+      postPatch = ''
+        cp ${./niks3_index.html} server/landing_page.html
+      '';
+    };
+
     cacheUrl = "https://cache.usertam.dev";
     serverUrl = "https://niks3.usertam.dev";
 

@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cache.usertam.dev</title>
+<meta name="description" content="Personal Nix binary cache at cache.usertam.dev. Substituter URL, signing key, and configuration instructions.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='%235277C3' stroke-width='1.8' stroke-linecap='round'%3E%3Cline x1='12' y1='3' x2='12' y2='21'/%3E%3Cline x1='4.2' y1='7.5' x2='19.8' y2='16.5'/%3E%3Cline x1='19.8' y1='7.5' x2='4.2' y2='16.5'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #fafbfd;
+    --surface: #ffffff;
+    --ink: #1a2433;
+    --muted: #5b6b80;
+    --line: #dde4ee;
+    --accent: #5277c3;
+    --accent-soft: #7ebae4;
+    --code-bg: #101826;
+    --code-ink: #d7e1ef;
+    --code-muted: #6b7d96;
+    --code-str: #9cc7f2;
+    --code-key: #7ebae4;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c1220;
+      --surface: #121a2b;
+      --ink: #e3eaf5;
+      --muted: #8b9bb3;
+      --line: #22304a;
+      --code-bg: #0a101c;
+      --code-ink: #d7e1ef;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main {
+    width: 100%;
+    max-width: 60rem;
+    margin: auto;
+    padding: 4rem 4rem 4rem;
+  }
+
+  main p a { color: var(--accent); text-decoration: none; }
+  main p a:hover { text-decoration: underline; }
+
+  /* ── header ─────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  header svg { flex: none; }
+  h1 {
+    font-family: var(--mono);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
+  .tagline {
+    color: var(--muted);
+    margin: 0 0 2.25rem;
+  }
+
+  /* ── hero card: the two values ──────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 3rem;
+  }
+  .card .row {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr auto;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem 1rem;
+  }
+  .card .row + .row { border-top: 1px solid var(--line); }
+  .card .label {
+    font-family: var(--mono);
+    font-size: .78rem;
+    letter-spacing: .04em;
+    color: var(--muted);
+    text-transform: lowercase;
+  }
+  .card .value {
+    font-family: var(--mono);
+    font-size: .88rem;
+    word-break: break-all;
+    min-width: 0;
+  }
+  .card .value a { color: var(--accent); text-decoration: none; }
+  .card .value a:hover { text-decoration: underline; }
+  @media (max-width: 560px) {
+    .card .row { grid-template-columns: 1fr auto; }
+    .card .label { grid-column: 1 / -1; padding-top: .1rem; }
+  }
+
+  /* ── copy buttons ───────────────────────────────────── */
+  .copy {
+    font: 500 .75rem var(--mono);
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: .3rem .6rem;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+    flex: none;
+  }
+  .copy:hover { color: var(--accent); border-color: var(--accent); }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .copy.done { color: var(--accent); border-color: var(--accent); }
+
+  /* ── sections ───────────────────────────────────────── */
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    margin: 0 0 1.25rem;
+    letter-spacing: -.01em;
+  }
+  section { margin-top: 1.25rem; }
+  .method-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: .5rem;
+  }
+  h3 {
+    font-size: .92rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  h3 .where {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: .78rem;
+    color: var(--muted);
+    margin-left: .5rem;
+  }
+  .hint {
+    font-size: .85rem;
+    color: var(--muted);
+    margin: .5rem 0 0;
+  }
+  .hint code {
+    font-family: var(--mono);
+    font-size: .8rem;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-radius: 4px;
+    padding: .05rem .3rem;
+  }
+
+  /* ── code blocks ────────────────────────────────────── */
+  .block {
+    position: relative;
+    background: var(--code-bg);
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .block pre {
+    margin: 0;
+    padding: .9rem 1rem;
+    overflow-x: auto;
+    font: .82rem/1.55 var(--mono);
+    color: var(--code-ink);
+  }
+  .block .copy {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    background: var(--code-bg);
+    border-color: #2a3a55;
+    color: var(--code-muted);
+  }
+  .block .copy:hover, .block .copy.done { color: var(--accent-soft); border-color: var(--accent-soft); }
+  .k { color: var(--code-key); }
+  .s { color: var(--code-str); }
+  .c { color: var(--code-muted); font-style: italic; }
+
+  /* ── footer ─────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 1.25rem;
+    font-size: .85rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+      <g stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round">
+        <line x1="12" y1="3"   x2="12"   y2="21"/>
+        <line x1="4.2" y1="7.5" x2="19.8" y2="16.5"/>
+        <line x1="19.8" y1="7.5" x2="4.2" y2="16.5"/>
+      </g>
+    </svg>
+    <h1>cache.usertam.dev</h1>
+  </header>
+  <p class="tagline">A personal Nix binary cache, backed by R2 and <a href="https://github.com/Mic92/niks3">niks3</a>.</p>
+
+  <div class="card">
+    <div class="row">
+      <span class="label">substituter</span>
+      <span class="value" id="v-url">{{ .CacheURL }}</span>
+      <button class="copy" data-copy="v-url" aria-label="Copy substituter URL">copy</button>
+    </div>
+{{- range $i, $key := .PublicKeys }}
+    <div class="row">
+      <span class="label">public key</span>
+      <span class="value" id="v-key-{{ $i }}">{{ $key }}</span>
+      <button class="copy" data-copy="v-key-{{ $i }}" aria-label="Copy public key">copy</button>
+    </div>
+{{- end }}
+  </div>
+
+  <h2>Using this cache</h2>
+
+  <section>
+    <div class="method-head">
+      <h3>Nix command <span class="where">Ad-hoc, need trusted-users</span></h3>
+    </div>
+    <div class="block">
+      <button class="copy" data-copy="c-cli" aria-label="Copy command">copy</button>
+      <pre id="c-cli">nix build nixpkgs#hello \
+  --extra-substituters <span class="s">'{{ .CacheURL }}'</span> \
+  --extra-trusted-public-keys <span class="s">'{{ .PublicKeysJoined }}'</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="method-head">
+      <h3>Nix configuration <span class="where">/etc/nix/nix.conf</span></h3>
+    </div>
+    <div class="block">
+      <button class="copy" data-copy="c-conf" aria-label="Copy nix.conf lines">copy</button>
+      <pre id="c-conf"><span class="k">extra-substituters</span> = {{ .CacheURL }}
+<span class="k">extra-trusted-public-keys</span> = {{ .PublicKeysJoined }}</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.dataset.copy);
+      var text = el.innerText.trim();
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'copied';
+        btn.classList.add('done');
+        setTimeout(function () {
+          btn.textContent = 'copy';
+          btn.classList.remove('done');
+        }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>
