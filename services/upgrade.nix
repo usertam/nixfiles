@@ -10,7 +10,7 @@
     flags = [
       "--option"
       "extra-substituters"
-      "https://usertam-nixfiles.cachix.org"
+      "https://cache.usertam.dev"
     ];
   };
 

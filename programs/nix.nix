@@ -43,20 +43,13 @@
       ];
       http-connections = 0;                   # Uncap parallel TCP connections.
       max-substitution-jobs = 128;            # This is 8x the default.
-      trusted-substituters = builtins.concatMap (x: ["${x}/" x]) [
+      extra-substituters = builtins.concatMap (x: ["${x}/" x]) [
+        "https://cache.usertam.dev"           # provide nixfiles cache
         "https://nix-community.cachix.org"    # provide cuda and unfree-redistributable packages
-        "https://cache.ztier.in"              # provide riscv64-linux packages
-        "https://usertam-nixfiles.cachix.org" # provide github runner populated cache
-        "https://context-minimals.cachix.org"
       ];
-      trusted-public-keys = [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      extra-trusted-public-keys = [
+        "cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "llama-cpp.cachix.org-1:H75X+w83wUKTIPSO1KWy9ADUrzThyGs8P5tmAbkWhQc="
-        "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
-        "context-minimals.cachix.org-1:pYxyH24J/A04fznRlYbTTjWrn9EsfUQvccGMjfXMdj0="
-        "usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI="
-        "cache.ztier.link-1:3P5j2ZB9dNgFFFVkCQWT3mh0E+S3rIWtZvoql64UaXM="
       ];
       trusted-users = [ "root" ];
     } // lib.optionalAttrs pkgs.stdenv.isLinux {

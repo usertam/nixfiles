@@ -24,7 +24,7 @@ curl -sSfL https://artifacts.nixos.org/experimental-installer | sh -s -- install
 Manually build the system toplevel derivation, then activate by `switch-to-configuration`.  
 Using `nixosConfigurations.slate` as example:
 ```
-nix build .#nixosConfigurations.slate.config.system.build.toplevel
+nix build github:usertam/nixfiles#nixosConfigurations.slate.config.system.build.toplevel
 sudo result/bin/switch-to-configuration switch
 ```
 You may `sudo nixos-rebuild switch --flake .#slate` after initial activation.
@@ -33,7 +33,7 @@ You may `sudo nixos-rebuild switch --flake .#slate` after initial activation.
 Manually build the system toplevel derivation, then `sudo` the activation script.  
 Using `darwinConfigurations.gale` as example:
 ```
-nix build .#darwinConfigurations.gale.config.system.build.toplevel
+nix build github:usertam/nixfiles#darwinConfigurations.gale.config.system.build.toplevel
 sudo result/activate
 ```
 You may `sudo darwin-rebuild switch` after initial activation.
@@ -42,15 +42,16 @@ You may `sudo darwin-rebuild switch` after initial activation.
 Build with binary cache! Remember to include `cache.nixos.org` with `--substituters`.
 ```sh
 sudo darwin-rebuild switch \
-  --flake ~/Desktop/projects/nixfiles \
-  --substituters 'https://cache.nixos.org https://usertam-nixfiles.cachix.org'
+  --flake github:usertam/nixfiles \
+  --option extra-substituters 'https://cache.usertam.dev' \
+  --option extra-trusted-public-keys 'cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE='
 ```
 
 Or use `--EXTRA-substituters`.
 ```sh
 sudo nix build .#nixosConfigurations.installer.config.system.build.toplevel \
-  --extra-substituters 'https://usertam-nixfiles.cachix.org' \
-  --extra-trusted-public-keys 'usertam-nixfiles.cachix.org-1:goXLh/oLkRJhgHRJcdD3/Yn7Dl6m0UZhfQxvTCZJqBI='
+  --extra-substituters 'https://cache.usertam.dev' \
+  --extra-trusted-public-keys 'cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE='
 ```
 
 ## Maintenance
