@@ -2,8 +2,17 @@
 
 {
   nix = {
-    # Use lix as default nix impl.
-    package = pkgs.lixPackageSets.latest.lix;
+    # Use lix as default nix implementation.
+    # Also fix a bug about dynamic users having no HOME.
+    # e.g. nix::Error: error: cannot determine user's home directory
+    package = pkgs.lixPackageSets.latest.lix.overrideAttrs (prev: {
+      postPatch = (prev.postPatch or "") + ''
+        substituteInPlace lix/libstore/build/local-derivation-goal.cc \
+          --replace-fail \
+            'builder = LIX_LIBEXEC_DIR "/builtin-builder";' \
+            'envStrs.emplace_back("HOME=" + homeDir); builder = LIX_LIBEXEC_DIR "/builtin-builder";'
+      '';
+    });
 
     # Lock nixpkgs in registry.
     registry.nixpkgs = lib.mkForce {
