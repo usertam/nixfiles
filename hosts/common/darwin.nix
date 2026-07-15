@@ -59,15 +59,6 @@
     };
   };
 
-  # For Lix: auto-allocate-uids + launchd: builtin-builder inherits daemon env (no HOME),
-  # build UID has no passwd entry -> getHome() aborts. A nonexistent HOME dodges the
-  # passwd lookup (ENOENT is kept; an existing unowned dir would still abort).
-  launchd.daemons.nix-daemon.serviceConfig.EnvironmentVariables.HOME = "/homeless-shelter";
-
-  # HOTFIX: https://github.com/nix-darwin/nix-darwin/pull/1818
-  documentation.doc.enable = false;
-  system.tools.darwin-uninstaller.enable = false;
-
   # Used for backwards compatibility, please read the changelog before changing.
   # $ darwin-rebuild changelog
   system.stateVersion = 4;
