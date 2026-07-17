@@ -21,34 +21,51 @@ curl -sSfL https://artifacts.nixos.org/experimental-installer | sh -s -- install
 ## Activation
 
 ### Linux
-Manually build the system toplevel derivation, then activate by `switch-to-configuration`.  
-Using `nixosConfigurations.slate` as example:
-```
+Build the system toplevel derivation, then activate by `switch-to-configuration`:
+```sh
 nix build github:usertam/nixfiles#nixosConfigurations.slate.config.system.build.toplevel
 sudo result/bin/switch-to-configuration switch
 ```
-You may `sudo nixos-rebuild switch --flake .#slate` after initial activation.
+
+After initial activation, you may run:
+```
+sudo nixos-rebuild switch --flake github:usertam/nixfiles#slate
+```
 
 ### Darwin
-Manually build the system toplevel derivation, then `sudo` the activation script.  
-Using `darwinConfigurations.gale` as example:
-```
+Build the system toplevel derivation, then run the activation script:
+```sh
 nix build github:usertam/nixfiles#darwinConfigurations.gale.config.system.build.toplevel
 sudo result/activate
 ```
-You may `sudo darwin-rebuild switch` after initial activation.
 
-### Want more speed?
-Build with binary cache! Remember to include `cache.nixos.org` with `--substituters`.
+After initial activation, you may run:
+```
+sudo darwin-rebuild switch --flake github:usertam/nixfiles#gale
+```
+
+### Using binary cache
+You will need to be root or `trusted-users` to specify new binary cache.
+
+For Linux using nixos-rebuild:
 ```sh
-sudo darwin-rebuild switch \
-  --flake github:usertam/nixfiles \
+sudo nixos-rebuild switch \
+  --flake github:usertam/nixfiles#slate \
   --option extra-substituters 'https://cache.usertam.dev' \
   --option extra-trusted-public-keys 'cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE='
 ```
 
-Or use `--EXTRA-substituters`.
+For Darwin using darwin-rebuild:
 ```sh
+sudo darwin-rebuild switch \
+  --flake github:usertam/nixfiles#gale \
+  --option extra-substituters 'https://cache.usertam.dev' \
+  --option extra-trusted-public-keys 'cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE='
+```
+
+Use Nix to build the system toplevel only:
+```sh
+# at cloned repository
 sudo nix build .#nixosConfigurations.installer.config.system.build.toplevel \
   --extra-substituters 'https://cache.usertam.dev' \
   --extra-trusted-public-keys 'cache.usertam.dev-1:slGg+FqFFc/qeCXyfoxBv+uuGDsUAyEbNkgwEEfw4uE='
