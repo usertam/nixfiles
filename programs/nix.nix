@@ -47,6 +47,7 @@
       sandbox = true;
       use-case-hack = false;
       warn-dirty = false;
+      accept-flake-config = false;
       extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
