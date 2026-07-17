@@ -3,6 +3,7 @@
 {
   imports = [
     ./common/nixos.nix
+    ../services/incus.nix
     ../services/upgrade.nix
   ];
 

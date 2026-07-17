@@ -1,0 +1,5 @@
+{ ... }:
+
+{
+  virtualisation.incus.enable = true;
+}
