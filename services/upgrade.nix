@@ -2,7 +2,7 @@
 
 {
   system.autoUpgrade = {
-    enable = true;
+    enable = lib.mkDefault true;
     flake = ".";
     upgrade = false;
   } // lib.optionalAttrs (config.swapDevices != [ ]) {

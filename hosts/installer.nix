@@ -10,6 +10,9 @@
   # Host identity.
   networking.hostName = "installer";
 
+  # Disable auto upgrade.
+  system.autoUpgrade.enable = false;
+
   services.getty.autologinUser = lib.mkForce "root";
   services.getty.helpLine = lib.mkForce (lib.trimWith { end = true; } ''
 
