@@ -15,6 +15,25 @@
   # Enable coturn server; replacing tailscale's built-in one.
   services.coturn.enable = true;
 
-  # Additionally, open port 80 and 443 for DERP server.
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  # Firewall rules for the relay.
+  networking.firewall = {
+    allowedTCPPorts = [
+      80    # ACME HTTP-01 + captive portal checks (derper)
+      443   # DERP over TLS
+      3478  # coturn STUN/TURN
+      5349  # coturn TURNS
+    ];
+
+    allowedUDPPorts = [
+      3478  # coturn STUN/TURN
+      5349  # coturn DTLS
+    ];
+
+    allowedUDPPortRanges = [
+      { # coturn relay allocations
+        from = config.services.coturn.min-port;
+        to   = config.services.coturn.max-port;
+      }
+    ];
+  };
 }
