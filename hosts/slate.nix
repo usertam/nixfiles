@@ -9,6 +9,9 @@
   # Host identity.
   networking.hostName = "slate";
 
+  # Enable auto login as root.
+  services.getty.autologinUser = lib.mkDefault "root";
+
   # Disable ZFS support to have the latest kernel. 
   boot.supportedFilesystems.zfs = lib.mkForce false;
 

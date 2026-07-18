@@ -5,7 +5,6 @@
     inputs.proxmox-nixos.nixosModules.proxmox-ve
     ./common/nixos.nix
     # TODO: ../services/lanzaboote.nix
-    ../services/upgrade.nix
   ];
 
   nixpkgs.overlays = [
@@ -17,6 +16,9 @@
 
   # Mission critical machine, do not switch.
   system.autoUpgrade.operation = "boot";
+
+  # Enable auto login as root.
+  services.getty.autologinUser = lib.mkDefault "root";
 
   # Boot stuff.
   boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.

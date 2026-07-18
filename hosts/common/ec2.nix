@@ -8,7 +8,7 @@
   ];
 
   # Host identity.
-  networking.hostName = lib.mkOverride 900 "generic-ami";
+  networking.hostName = lib.mkOverride 900 "ec2";
 
   # Override the default filesystems.
   fileSystems = lib.mkForce {

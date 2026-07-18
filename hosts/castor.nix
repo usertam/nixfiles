@@ -2,11 +2,10 @@
 
 {
   imports = [
-    ./common/ec2-ami.nix
+    ./common/ec2.nix
     ../services/coturn.nix
     ../services/derper.nix
     ../services/tailscale.nix
-    ../services/upgrade.nix
   ];
 
   # Set up swapfile.

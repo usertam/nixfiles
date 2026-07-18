@@ -4,11 +4,13 @@
   imports = [
     ./common/nixos.nix
     ../services/incus.nix
-    ../services/upgrade.nix
   ];
 
   # Host identity.
   networking.hostName = "tsrvbld";
+
+  # Enable auto login as root.
+  services.getty.autologinUser = lib.mkDefault "root";
 
   # Basic boot stuff, from nixos-generate-config.
   boot.loader.systemd-boot.enable = true;

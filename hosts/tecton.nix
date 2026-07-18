@@ -5,11 +5,13 @@
     "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/virtualisation/disk-image.nix"
     ./common/nixos.nix
-    ../services/upgrade.nix
   ];
 
   # Host identity.
   networking.hostName = "tecton";
+
+  # Enable auto login as root.
+  services.getty.autologinUser = lib.mkDefault "root";
 
   # Boot.
   boot.loader.systemd-boot.enable = true;

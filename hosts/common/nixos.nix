@@ -9,6 +9,7 @@
     ../../services/openssh.nix
     ../../services/rsyncd.nix
     ../../services/tailscale.nix
+    ../../services/upgrade.nix
   ];
 
   # Auto-gen host ID based on the set hostname. Used by ZFS.
@@ -49,9 +50,6 @@
     { domain = "*"; type = "soft"; item = "nofile"; value = "65536"; }
     { domain = "*"; type = "hard"; item = "nofile"; value = "524288"; }
   ];
-
-  # Set default login user root.
-  services.getty.autologinUser = lib.mkDefault "root";
 
   # Assume single NIC setups.
   networking.usePredictableInterfaceNames = lib.mkDefault false;

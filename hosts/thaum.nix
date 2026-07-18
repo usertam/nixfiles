@@ -6,7 +6,6 @@
     ./common/nixos.nix
     ../services/incus.nix
     ../services/niks3.nix
-    ../services/upgrade.nix
   ];
 
   # Host identity.
@@ -40,9 +39,6 @@
       options = [ "fmask=0022" "dmask=0022" ];
     };
   };
-
-  # Disable auto-login on a cloud VM.
-  services.getty.autologinUser = null;
 
   # Static networking.
   networking.useNetworkd = true;

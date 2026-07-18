@@ -4,11 +4,13 @@
   imports = [
     ./common/nixos.nix
     ../services/lanzaboote.nix
-    ../services/upgrade.nix
   ];
 
   # Host identity.
   networking.hostName = "nova";
+
+  # Enable auto login as root.
+  services.getty.autologinUser = lib.mkDefault "root";
 
   # Boot stuff.
   # boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.

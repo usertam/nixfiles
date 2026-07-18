@@ -7,7 +7,7 @@
   ];
 
   # Host identity.
-  networking.hostName = lib.mkOverride 900 "generic-docker";
+  networking.hostName = lib.mkOverride 900 "docker";
 
   documentation.doc.enable = false;
 
