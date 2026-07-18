@@ -10,10 +10,19 @@
   # Host identity.
   networking.hostName = lib.mkOverride 900 "generic-ami";
 
-  # Set up swapfile.
-  swapDevices = [
-    { device = "/var/lib/swapfile"; size = 2 * 1024; }
-  ];
+  # Override the default filesystems.
+  fileSystems = lib.mkForce {
+    "/" = {
+      device = "/dev/disk/by-label/NIXOS";
+      fsType = "ext4";
+      autoResize = true;
+    };
+    "/boot" = {
+      device = "/dev/disk/by-label/BOOT";
+      fsType = "vfat";
+      options = [ "fmask=0022" "dmask=0022" ];
+    };
+  };
 
   # Hack to override the build to produce the extra zst image.
   system.build.release =

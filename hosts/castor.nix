@@ -9,6 +9,11 @@
     ../services/upgrade.nix
   ];
 
+  # Set up swapfile.
+  swapDevices = [
+    { device = "/var/lib/swapfile"; size = 2 * 1024; }
+  ];
+
   # Host identity.
   networking.hostName = lib.mkOverride 500 "castor";
 }
