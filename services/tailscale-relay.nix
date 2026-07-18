@@ -12,9 +12,9 @@
     configureNginx = false;
   };
 
-  # Set a default regular memory limit, of 10x average.
-  systemd.services.tailscale-derper.serviceConfig = {
-    MemoryHigh = lib.mkDefault "128M";
-    MemoryMax = lib.mkDefault "192M";
-  };
+  # Enable coturn server; replacing tailscale's built-in one.
+  services.coturn.enable = true;
+
+  # Additionally, open port 80 and 443 for DERP server.
+  networking.firewall.allowedTCPPorts = [ 80 443 ];
 }
