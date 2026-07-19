@@ -4,6 +4,7 @@
   imports = [
     "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/virtualisation/disk-image.nix"
+    ./common/lowmem.nix
     ./common/nixos.nix
   ];
 

@@ -5,13 +5,8 @@
     enable = lib.mkDefault true;
     flake = ".";
     upgrade = false;
-  } // lib.optionalAttrs (config.swapDevices != [ ]) {
+  } // lib.optionalAttrs config.nix.gc.automatic {
     runGarbageCollection = true;
-    flags = [
-      "--option"
-      "extra-substituters"
-      "https://cache.usertam.dev"
-    ];
   };
 
   systemd.services.nixos-upgrade = {

@@ -3,6 +3,7 @@
 {
   imports = [
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
+    ./common/lowmem.nix
     ./common/nixos.nix
   ];
 

@@ -3,13 +3,9 @@
 {
   imports = [
     ./common/ec2.nix
+    ./common/lowmem.nix
     ../services/tailscale.nix
     ../services/tailscale-relay.nix
-  ];
-
-  # Set up swapfile.
-  swapDevices = [
-    { device = "/var/lib/swapfile"; size = 2 * 1024; }
   ];
 
   # Host identity.
