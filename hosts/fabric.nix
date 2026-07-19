@@ -22,6 +22,9 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelParams = [ "console=tty0" "console=ttyS0" ];
 
+  # Needed at boot to set nf_conntrack_max.
+  boot.kernelModules = [ "nf_conntrack" ];
+
   boot.initrd.availableKernelModules = [
     "virtio_pci" "virtio_scsi" "virtio_blk" "virtio_net"
   ];

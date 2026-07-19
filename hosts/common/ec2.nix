@@ -11,7 +11,7 @@
   networking.hostName = lib.mkOverride 900 "ec2";
 
   # Override the default filesystems.
-  fileSystems = lib.mkForce {
+  fileSystems = {
     "/" = {
       device = "/dev/disk/by-label/NIXOS";
       fsType = "ext4";
@@ -20,7 +20,7 @@
     "/boot" = {
       device = "/dev/disk/by-label/BOOT";
       fsType = "vfat";
-      options = [ "fmask=0022" "dmask=0022" ];
+      options = [ "fmask=0077" "dmask=0077" ];
     };
   };
 

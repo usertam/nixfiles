@@ -157,6 +157,11 @@
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
 
+  # Lock down boot partition to root.
+  fileSystems = lib.mkIf
+    (config.boot.loader.systemd-boot.enable || config.boot.lanzaboote.enable or false)
+    { "/boot".options = lib.mkDefault [ "fmask=0077" "dmask=0077" ]; };
+
   # Database compatibility defaults.
   system.stateVersion = (lib.mkOverride 900) "26.05";
 }
