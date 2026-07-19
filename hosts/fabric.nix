@@ -236,6 +236,8 @@
         output_options = lib.singleton { output = "stdout"; };
       };
     };
+    # Demote security errors to allow unsecured HTTP control channel.
+    extraArgs = [ "-X" ];
   };
 
   # VRRP. Instances bundled in sync_group ROUTER so they failover together.
