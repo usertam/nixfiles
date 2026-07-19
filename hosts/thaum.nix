@@ -4,6 +4,7 @@
   imports = [
     "${modulesPath}/profiles/qemu-guest.nix"
     ./common/nixos.nix
+    ../services/monitoring.nix
     ../services/incus.nix
     ../services/niks3.nix
   ];
