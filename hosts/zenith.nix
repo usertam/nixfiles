@@ -4,6 +4,7 @@
   imports = [
     inputs.proxmox-nixos.nixosModules.proxmox-ve
     ./common/nixos.nix
+    ../services/monitoring.nix
     # TODO: ../services/lanzaboote.nix
   ];
 

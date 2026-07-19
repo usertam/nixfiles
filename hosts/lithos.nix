@@ -6,6 +6,7 @@
     "${modulesPath}/virtualisation/disk-image.nix"
     ./common/lowmem.nix
     ./common/nixos.nix
+    ../services/monitoring.nix
   ];
 
   # Host identity.
