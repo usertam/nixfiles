@@ -117,13 +117,9 @@
       };
     in
     lib.mkDefault ((linuxPackagesFor kernel).extend (_: prev: {
-      # virtualbox-modules 7.2.10's vboxnetadp calls strncpy(), which Linux 7.2
-      # removed from <linux/string.h>. Swap the three call sites for the kernel's
-      # null-terminating strscpy() (the trailing manual NUL termination is then
-      # redundant but harmless). Scoped to 7.2.10 via --replace-fail so a future
-      # bump that fixes this upstream fails loudly instead of silently misapplying.
-      # (7.2.10 already fixed the earlier 7.1 kvm_enable_virtualization breakage.)
-      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2.10-" old.version) {
+      # virtualbox-modules' vboxnetadp calls strncpy(), which Linux 7.2 removed
+      # from <linux/string.h>. Swap the three call sites for strscpy().
+      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2-rc" prev.kernel.version) {
         postPatch = (old.postPatch or "") + ''
           substituteInPlace vboxnetadp/VBoxNetAdp.c \
             --replace-fail \
@@ -139,12 +135,10 @@
         '';
       });
 
-      # ena (amzn-drivers 2.17.0) on host castor: Linux 7.2 changed
-      # page_pool_get_stats() to return void, so ena_ethtool.c's bool-style
-      # check no longer compiles. Call it unconditionally once the page pool is
-      # known non-NULL. Prepended so it runs at sourceRoot (before ena's own
-      # postPatch cd's into the module dir); scoped to 2.17.0 via --replace-fail.
-      ena = prev.ena.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "2.17.0" old.version) {
+      # ena on ec2 hosts: Linux 7.2 changed page_pool_get_stats() to return void,
+      # so ena_ethtool.c's bool-style check no longer compiles. Call it
+      # unconditionally once the page pool is known non-NULL.
+      ena = prev.ena.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2-rc" prev.kernel.version) {
         postPatch = ''
           substituteInPlace kernel/linux/ena/ena_ethtool.c \
             --replace-fail \
