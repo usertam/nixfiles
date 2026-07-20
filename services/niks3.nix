@@ -54,8 +54,6 @@
     defaults.email = "infra@usertam.dev";
   };
 
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
-
   systemd.services.niks3 = {
     path = [
       pkgs.coreutils
@@ -82,4 +80,6 @@
       ];
     };
   };
+
+  networking.firewall.allowedTCPPorts = [ 80 443 ];
 }

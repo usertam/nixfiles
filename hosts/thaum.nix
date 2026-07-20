@@ -25,6 +25,11 @@
     "kvm-amd"
   ];
 
+  # Enable hugepages for postgresql, 512 * 2MiB = 1GiB total.
+  boot.kernel.sysctl = {
+    "vm.nr_hugepages" = 512;
+  };
+
   # Enable microcode updates.
   hardware.cpu.amd.updateMicrocode = true;
   hardware.enableRedistributableFirmware = true;
