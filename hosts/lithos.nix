@@ -58,6 +58,7 @@
       LegalNotice.Accepted = true;
       BitTorrent.Session = {
         DefaultSavePath = "/srv/tank/services/torrent/complete";
+        DiskIOType = "Posix";
         TempPathEnabled = true;
         TempPath = "/srv/tank/services/torrent/incomplete";
         TorrentExportDirectory = "/srv/tank/services/torrent/origin";
@@ -68,6 +69,7 @@
         uTPRateLimited = false;
       };
       Preferences = {
+        Search.pythonExecutablePath = "${pkgs.python313}/bin/python";
         WebUI = {
           AuthSubnetWhitelist = "100.64.0.0/10,127.0.0.1/32";
           AuthSubnetWhitelistEnabled = true;
