@@ -30,7 +30,16 @@
   };
 
   # Enable coturn server; replacing tailscale's built-in one.
-  services.coturn.enable = true;
+  services.coturn = {
+    enable = true;
+    # Reuse the TLS cert from ACME.
+    cert = "/var/lib/acme/derp.usertam.dev/fullchain.pem";
+    pkey = "/var/lib/acme/derp.usertam.dev/key.pem";
+  };
+
+  # Enable coturn to read the TLS cert; restart it when the cert is provisioned.
+  users.users.turnserver.extraGroups = [ config.services.nginx.group ];
+  security.acme.certs."derp.usertam.dev".reloadServices = [ "coturn.service" ];
 
   # Wait for both IPv4 and IPv6 before reaching network-online.target.
   # To let coturn to enumerate the listening addresses properly.
