@@ -6,14 +6,35 @@
     enable = true;
     # Honor the choice on services.tailscale.package.
     package = config.services.tailscale.package.derper;
-    domain =
-      "derp.usertam.dev"
-      + lib.optionalString config.services.coturn.enable " -stun=false"; # Hack to disable STUN.
-    configureNginx = false;
+    domain = "derp.usertam.dev";
+  };
+
+  # Override the systemd derper service.
+  systemd.services.tailscale-derper = let
+    cfg = config.services.tailscale.derper;
+  in {
+    serviceConfig.ExecStart = lib.mkForce (
+      "${lib.getExe' cfg.package "derper"}"
+      + " -a :${toString cfg.port}"
+      + " -c /var/lib/derper/derper.key"
+      + " -hostname=${cfg.domain}"
+      + " -stun=false"
+    );
+  };
+
+  # Enable ACME for derper.
+  services.nginx.virtualHosts."derp.usertam.dev".enableACME = true;
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "infra@usertam.dev";
   };
 
   # Enable coturn server; replacing tailscale's built-in one.
   services.coturn.enable = true;
+
+  # Wait for both IPv4 and IPv6 before reaching network-online.target.
+  # To let coturn to enumerate the listening addresses properly.
+  networking.dhcpcd.wait = "both";
 
   # Firewall rules for the relay.
   networking.firewall = {
