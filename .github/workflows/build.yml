@@ -80,17 +80,17 @@ jobs:
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'toplevel')
       run: |
-        nix build -L --keep-going \
+        nix build -L --keep-going --fallback \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
     - name: Build vm for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'vm')
       run: |
-        nix build -L --keep-going --option post-build-hook "" \
+        nix build -L --keep-going --fallback --option post-build-hook "" \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
     - name: Build release for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'release')
       run: |
-        nix build -L --keep-going --option post-build-hook "" \
+        nix build -L --keep-going --fallback --option post-build-hook "" \
           .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
         find -L result -name '*.zst' -exec cp -a {} . \;
         echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
@@ -117,7 +117,8 @@ jobs:
         server-url: https://niks3.usertam.dev
     - name: Build ${{matrix.config}}.toplevel
       run: |
-        nix build -L --keep-going .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel
+        nix build -L --keep-going --fallback \
+          .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel
 
   build-status:
     name: Build Status
