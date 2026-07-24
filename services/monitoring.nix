@@ -4,13 +4,9 @@
   services.prometheus.exporters.node = {
     enable = true;
     listenAddress = "127.0.0.1";
-    # Defaults cover cpu/meminfo/filesystem/netdev/diskstats/loadavg etc.
     enabledCollectors = [
-      "systemd"       # unit states -- useful, moderate series count
-      "processes"     # procs/threads counts
+      "systemd" "processes" "ethtool" "qdisc" "softirqs" "buddyinfo" "sysctl" "swap"
     ];
-    # Trim collectors you'll never graph; each one is active series on the bill:
-    # disabledCollectors = [ "arp" "bcache" "btrfs" "infiniband" "nfs" "nfsd" "xfs" ];
   };
 
   services.vmagent = {
@@ -45,6 +41,12 @@
             {
               source_labels = [ "__name__" ];
               regex = "(go|promhttp)_.*";
+              action = "drop";
+            }
+            # Drop some systemd unit states to reduce series count.
+            {
+              source_labels = [ "__name__" "state" ];
+              regex = "node_systemd_unit_state;(activating|deactivating|inactive)";
               action = "drop";
             }
           ];
