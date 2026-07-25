@@ -233,12 +233,21 @@
         ];
       };
 
-      # Silence per-heartbeat COMMAND_RECEIVED chatter from the HA hook.
-      loggers = lib.singleton {
-        name = "kea-dhcp4.commands";
-        severity = "WARN";
-        output_options = lib.singleton { output = "stdout"; };
-      };
+      loggers = [
+        # Silence per-heartbeat COMMAND_RECEIVED chatter from the HA hook.
+        {
+          name = "kea-dhcp4.commands";
+          severity = "WARN";
+          output_options = lib.singleton { output = "stdout"; };
+        }
+        # Silence per-heartbeat spurious DHCP_RECEIVE4_UNKNOWN warnings
+        # (kea#4625); errors from the socket layer still get through.
+        {
+          name = "kea-dhcp4.dhcp";
+          severity = "ERROR";
+          output_options = lib.singleton { output = "stdout"; };
+        }
+      ];
     };
     # Demote security errors to allow unsecured HTTP control channel.
     extraArgs = [ "-X" ];
