@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 
 {
   # For now, this is an exact mirror of castor, with a different hostname.

@@ -68,6 +68,9 @@
   nix.settings.extra-platforms = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];
   nix.settings.system-features = [ "gccarch-armv7-a" ];
 
+  # Conservative garbage collection.
+  nix.gc.options = "--delete-older-than 30d";
+
   # Enable NetworkManager with iwd and systemd-resolved.
   networking.networkmanager = {
     enable = true;
@@ -125,4 +128,12 @@
   services.logind.settings.Login.HandleLidSwitch = "ignore";
   systemd.targets.suspend.enable = false;
   powerManagement.enable = false;
+
+  system.activationScripts.rebootOnce = ''
+    if [ "$NIXOS_ACTION" = switch ] && [ ! -e /var/lib/reboot-once.v1 ]; then
+      touch /var/lib/reboot-once.v1
+      ${config.systemd.package}/bin/systemd-run --on-active=5s \
+        --unit=reboot-once ${config.systemd.package}/bin/systemctl reboot
+    fi
+  '';
 }

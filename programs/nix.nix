@@ -32,6 +32,7 @@
 
     # Enable automatic garbage collection and optimise.
     gc.automatic = lib.mkDefault true;
+    gc.options = lib.mkDefault "--delete-older-than 10d";
     optimise.automatic = (lib.mkOverride 900) true;
 
     # Use these settings in nix.conf.

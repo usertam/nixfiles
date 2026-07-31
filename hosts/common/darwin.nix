@@ -42,8 +42,8 @@
   # Set local hostname to be same as hostname.
   networking.localHostName = lib.mkDefault config.networking.hostName;
 
-  # Disable nix garbage collection, including old outputs and derivations.
-  nix.gc.automatic = false;
+  # Conservative garbage collection.
+  nix.gc.options = "--delete-older-than 30d";
 
   # List of macOS settings.
   system.defaults = {
