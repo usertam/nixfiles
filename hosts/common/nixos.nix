@@ -117,24 +117,6 @@
       };
     in
     lib.mkDefault ((linuxPackagesFor kernel).extend (_: prev: {
-      # virtualbox-modules' vboxnetadp calls strncpy(), which Linux 7.2 removed
-      # from <linux/string.h>. Swap the three call sites for strscpy().
-      virtualbox = prev.virtualbox.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2-rc" prev.kernel.version) {
-        postPatch = (old.postPatch or "") + ''
-          substituteInPlace vboxnetadp/VBoxNetAdp.c \
-            --replace-fail \
-              'strncpy(pThis->szName, pcszName, sizeof(pThis->szName) - 1);' \
-              'strscpy(pThis->szName, pcszName, sizeof(pThis->szName));'
-          substituteInPlace vboxnetadp/linux/VBoxNetAdp-linux.c \
-            --replace-fail \
-              'strncpy(pThis->szName, pNetDev->name, sizeof(pThis->szName));' \
-              'strscpy(pThis->szName, pNetDev->name, sizeof(pThis->szName));' \
-            --replace-fail \
-              'strncpy(Req.szName, pAdp->szName, sizeof(Req.szName) - 1);' \
-              'strscpy(Req.szName, pAdp->szName, sizeof(Req.szName));'
-        '';
-      });
-
       # ena on ec2 hosts: Linux 7.2 changed page_pool_get_stats() to return void,
       # so ena_ethtool.c's bool-style check no longer compiles. Call it
       # unconditionally once the page pool is known non-NULL.
