@@ -128,12 +128,4 @@
   services.logind.settings.Login.HandleLidSwitch = "ignore";
   systemd.targets.suspend.enable = false;
   powerManagement.enable = false;
-
-  system.activationScripts.rebootOnce = ''
-    if [ "$NIXOS_ACTION" = switch ] && [ ! -e /var/lib/reboot-once.v1 ]; then
-      touch /var/lib/reboot-once.v1
-      ${config.systemd.package}/bin/systemd-run --on-active=5s \
-        --unit=reboot-once ${config.systemd.package}/bin/systemctl reboot
-    fi
-  '';
 }
