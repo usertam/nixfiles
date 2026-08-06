@@ -36,6 +36,8 @@
           repository = [
             "usertam/nixfiles"
             "usertam/nixfiles-home"
+            "usertam/tailscaled-android"
+            "usertam/remarkable2"
           ];
         };
       };
