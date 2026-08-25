@@ -10,6 +10,9 @@
   # Host identity.
   networking.hostName = lib.mkOverride 900 "ec2";
 
+  # Remove the out-of-tree ENA driver.
+  boot.extraModulePackages = lib.mkOverride 90 [ ];
+
   # Override the default filesystems.
   fileSystems = {
     "/" = {
