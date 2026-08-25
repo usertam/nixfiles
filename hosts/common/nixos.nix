@@ -116,19 +116,7 @@
         };
       };
     in
-    lib.mkDefault ((linuxPackagesFor kernel).extend (_: prev: {
-      # ena on ec2 hosts: Linux 7.2 changed page_pool_get_stats() to return void,
-      # so ena_ethtool.c's bool-style check no longer compiles. Call it
-      # unconditionally once the page pool is known non-NULL.
-      ena = prev.ena.overrideAttrs (old: lib.optionalAttrs (lib.hasPrefix "7.2-rc" prev.kernel.version) {
-        postPatch = ''
-          substituteInPlace kernel/linux/ena/ena_ethtool.c \
-            --replace-fail \
-              $'if (!pool || !page_pool_get_stats(pool, &stats))\n\t\t\tcontinue;' \
-              $'if (!pool)\n\t\t\tcontinue;\n\t\tpage_pool_get_stats(pool, &stats);'
-        '' + (old.postPatch or "");
-      });
-    }));
+    lib.mkDefault (linuxPackagesFor kernel);
 
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
