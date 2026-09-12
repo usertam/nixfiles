@@ -47,8 +47,6 @@
 
   # Static networking.
   networking.useNetworkd = true;
-  systemd.network.enable = true;
-  services.resolved.enable = true;
 
   systemd.network.networks."10-wan0" = {
     matchConfig.Name = "eth0";

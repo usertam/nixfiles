@@ -8,26 +8,28 @@
 
   # Distinct virtio MACs.
   systemd.network.links = {
-    "10-wan0".matchConfig.MACAddress = "00:1a:4a:f4:c4:42";
-    "10-lan0".matchConfig.MACAddress = "00:1a:4a:f4:c4:66";
-    "10-vm0".matchConfig.MACAddress  = "00:1a:4a:f4:c4:a2";
-    "10-vm1".matchConfig.MACAddress  = "00:1a:4a:f4:c4:df";
+    "10-wan0".matchConfig.MACAddress  = "00:1a:4a:f4:c4:42";
+    "20-lan0".matchConfig.MACAddress  = "00:1a:4a:f4:c4:66";
+    "30-vnet0".matchConfig.MACAddress = "00:1a:4a:f4:c4:a2";
+    "40-peer0".matchConfig.MACAddress = "00:1a:4a:f4:c4:df";
   };
 
-  # Distinct real IPs on the .3 of each subnet.
+  # Distinct IPs on LAN.
   systemd.network.networks = {
-    "10-lan0".address = [ "192.168.1.3/24" ];
-    "10-vm0".address  = [ "172.16.0.3/20" ];
-    "10-vm1".address  = [ "172.16.16.3/20" ];
+    "30-vnet0".address = [ "172.16.0.12/20" ];
+    "40-peer0".addresses = [
+      { Address = "172.16.200.2/32"; Peer = "172.16.200.1/32"; }
+    ];
+    "50-vf0".addresses = [
+      { Address = "172.16.201.2/32"; Peer = "172.16.201.1/32"; }
+    ];
   };
 
   # Lower VRRP priority and start in BACKUP.
   services.keepalived.vrrpInstances = {
-    lan0.state = "BACKUP";
-    vm0.state  = "BACKUP";
-    vm1.state  = "BACKUP";
-    lan0.priority = 100;
-    vm0.priority  = 100;
-    vm1.priority  = 100;
+    lan0.state  = "BACKUP";
+    vnet0.state = "BACKUP";
+    lan0.priority  = 100;
+    vnet0.priority = 100;
   };
 }

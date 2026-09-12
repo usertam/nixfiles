@@ -22,7 +22,7 @@
   services.getty.autologinUser = lib.mkDefault "root";
 
   # Boot stuff.
-  boot.loader.systemd-boot.enable = true; # Handled by lanzaboote.
+  boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
   # From auto hardware detection.
@@ -42,9 +42,8 @@
   hardware.enableRedistributableFirmware = true;
 
   # Configure VFIO passthrough for USB 3.1 (Type-C) [1022:15b7].
-  boot.kernelParams = [ "amd_iommu=on" "iommu=pt" "vfio-pci.ids=1022:15b7" ];
+  boot.kernelParams = [ "iommu=pt" "vfio-pci.ids=1022:15b7" ];
   boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
-  boot.extraModprobeConfig = "options vfio-pci ids=1022:15b7";
 
   fileSystems = {
     "/" = {
@@ -72,8 +71,6 @@
   # Networking.
   networking.useNetworkd = true;
   networking.usePredictableInterfaceNames = lib.mkForce true;
-  systemd.network.enable = true;
-  services.resolved.enable = true;
 
   # Reassign physical NICs, to be enslaved by bridges.
   systemd.network.links = {
@@ -84,7 +81,7 @@
         MACAddress = "00:1a:4a:0d:51:70";
       };
     };
-    "10-lan0" = {
+    "20-lan0" = {
       matchConfig.PermanentMACAddress = "38:05:25:30:8f:7d";
       linkConfig = {
         Name = "lan0";
@@ -95,110 +92,97 @@
 
   # Bridges.
   systemd.network.netdevs = {
-    "15-vmbr0".netdevConfig = {
-      Name = "vmbr0";
-      Kind = "bridge";
-    };
-    "15-vmbr1".netdevConfig = {
-      Name = "vmbr1";
-      Kind = "bridge";
-    };
-    "15-wanbr0".netdevConfig = {
+    "10-wanbr0".netdevConfig = {
       Name = "wanbr0";
       Kind = "bridge";
     };
-    "15-lanbr0".netdevConfig = {
+    "20-lanbr0".netdevConfig = {
       Name = "lanbr0";
+      Kind = "bridge";
+    };
+    "30-vnet0".netdevConfig = {
+      Name = "vnet0";
+      Kind = "bridge";
+    };
+    "40-peer0".netdevConfig = {
+      Name = "peer0";
+      Kind = "bridge";
+    };
+    "50-peer1".netdevConfig = {
+      Name = "peer1";
       Kind = "bridge";
     };
   };
 
-  # IP forwarding for bridged traffic.
-  boot.kernel.sysctl = {
-    "net.ipv4.ip_forward" = 1;
-    "net.ipv6.conf.all.forwarding" = 1;
-  };
-
-  # WAN bridge. Pure L2, no IP on zenith — fabric is the WAN-facing host.
-  systemd.network.networks."20-wanbr0" = {
-    matchConfig.Name = "wanbr0";
-    networkConfig = {
-      LinkLocalAddressing = "no";
-      IPv6AcceptRA = false;
-      ConfigureWithoutCarrier = true;
-    };
-    linkConfig.RequiredForOnline = "no";
-  };
-
-  # Bridges for LAN.
-  systemd.network.networks."20-lanbr0" = {
-    matchConfig.Name = "lanbr0";
-    networkConfig = {
-      LinkLocalAddressing = "no";
-      IPv6AcceptRA = false;
-      ConfigureWithoutCarrier = true;
-    };
-    linkConfig.RequiredForOnline = "no";
-  };
-
-  # Bridge for VM 0. Configure static IP, DHCP server, default gateway.
-  systemd.network.networks."20-vmbr0" = {
-    matchConfig.Name = "vmbr0";
-    address = [ "172.16.0.1/20" ];
-    routes = lib.singleton {
-      Gateway = "172.16.0.10";
-      Metric = 100;
-    };
-    networkConfig.DHCPServer = true;
-    dhcpServerConfig = rec {
-      # Reserve up to 172.16.0.10.
-      PoolOffset = 11;
-      # Exclude broadcast address.
-      PoolSize = 16 * 256 - PoolOffset - 1;
-      DefaultLeaseTimeSec = 604800;
-      EmitDNS = true;
-      DNS = [ "172.16.0.10" ];
-      EmitRouter = true;
-      Router = [ "172.16.0.10" ];
-    };
-  };
-
-  # Bridge for VM 1. Configure higher metric gateway.
-  systemd.network.networks."20-vmbr1" = {
-    matchConfig.Name = "vmbr1";
-    address = [ "172.16.16.1/20" ];
-    routes = lib.singleton {
-      Gateway = "172.16.16.10";
-      Metric = 200;
-    };
-    networkConfig.DHCPServer = true;
-    dhcpServerConfig = rec {
-      # Reserve up to 172.16.16.10.
-      PoolOffset = 11;
-      # Exclude broadcast address.
-      PoolSize = 16 * 256 - PoolOffset - 1;
-      DefaultLeaseTimeSec = 604800;
-      EmitDNS = true;
-      DNS = [ "172.16.16.10" ];
-      EmitRouter = true;
-      Router = [ "172.16.16.10" ];
-    };
-  };
-
-  # Enslave the physicals to their bridges.
   systemd.network.networks = {
-    "25-wan0" = {
-      matchConfig.Name = "wan0";
+    # WAN bridge, let router do the DHCP itself.
+    "10-wanbr0" = {
+      matchConfig.Name = "wanbr0";
       networkConfig = {
-        Bridge = "wanbr0";
+        LinkLocalAddressing = "no";
         ConfigureWithoutCarrier = true;
       };
       linkConfig.RequiredForOnline = "no";
     };
+
+    # LAN bridge, delegate DHCP, DNS and gateway to router.
+    "20-lanbr0" = {
+      matchConfig.Name = "lanbr0";
+      networkConfig = {
+        LinkLocalAddressing = "no";
+        ConfigureWithoutCarrier = true;
+      };
+      linkConfig.RequiredForOnline = "no";
+    };
+
+    # Enslave the physicals to their bridges.
+    "15-wan0" = {
+      matchConfig.Name = "wan0";
+      networkConfig.Bridge = "wanbr0";
+    };
     "25-lan0" = {
       matchConfig.Name = "lan0";
+      networkConfig.Bridge = "lanbr0";
+    };
+
+    # Main network for VMs. Handle DHCP, delegate DNS and gateway to router.
+    "30-vnet0" = {
+      matchConfig.Name = "vnet0";
+      address = [ "172.16.0.1/20" ];
+      routes = lib.singleton {
+        Gateway = "172.16.0.10";
+        Metric = 100;
+      };
+      networkConfig.DHCPServer = true;
+      linkConfig.RequiredForOnline = "no";
+      dhcpServerConfig = rec {
+        # Reserve up to 172.16.0.10.
+        PoolOffset = 11;
+        # Exclude broadcast address.
+        PoolSize = 16 * 256 - PoolOffset - 1;
+        DefaultLeaseTimeSec = 604800;
+        EmitDNS = true;
+        DNS = [ "172.16.0.10" ];
+        EmitRouter = true;
+        Router = [ "172.16.0.10" ];
+      };
+    };
+
+    # Router peer bridge, let routers do their thing.
+    "40-peer0" = {
+      matchConfig.Name = "peer0";
       networkConfig = {
-        Bridge = "lanbr0";
+        LinkLocalAddressing = "no";
+        ConfigureWithoutCarrier = true;
+      };
+      linkConfig.RequiredForOnline = "no";
+    };
+
+    # VM pair peer bridge.
+    "50-peer1" = {
+      matchConfig.Name = "peer1";
+      networkConfig = {
+        LinkLocalAddressing = "no";
         ConfigureWithoutCarrier = true;
       };
       linkConfig.RequiredForOnline = "no";
@@ -206,16 +190,13 @@
   };
 
   # Open port for DHCP requests.
-  networking.firewall.interfaces = {
-    "vmbr0".allowedUDPPorts = [ 67 ];
-    "vmbr1".allowedUDPPorts = [ 67 ];
-  };
+  networking.firewall.interfaces."vnet0".allowedUDPPorts = [ 67 ];
 
   # Enable Proxmox VE.
   services.proxmox-ve = {
     enable = true;
     ipAddress = "172.16.0.1";
-    bridges = [ "vmbr0" "vmbr1" "wanbr0" "lanbr0" ];
+    bridges = [ "wanbr0" "lanbr0" "vnet0" "peer0" "peer1" ];
   };
   services.openssh.settings = {
     AcceptEnv = lib.mkForce null;

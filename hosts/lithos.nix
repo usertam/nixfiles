@@ -30,8 +30,6 @@
 
   # Networking.
   networking.useNetworkd = true;
-  systemd.network.enable = true;
-  services.resolved.enable = true;
 
   # Enable NFS on tailscale.
   services.nfs.server = {
