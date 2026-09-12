@@ -24,8 +24,6 @@
 
   # Networking.
   networking.useNetworkd = true;
-  systemd.network.enable = true;
-  services.resolved.enable = true;
 
   # Install development packages.
   nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [

@@ -38,9 +38,7 @@
 
   # Networking.
   networking.useNetworkd = true;
-  networking.usePredictableInterfaceNames = lib.mkForce true;
-  systemd.network.enable = true;
-  services.resolved.enable = false;
+  networking.usePredictableInterfaceNames = true;
 
   # List of interfaces, pinned by MAC.
   systemd.network.links = {
@@ -48,57 +46,87 @@
       matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:54";
       linkConfig.Name = "wan0";
     };
-    "10-lan0" = {
+    "20-lan0" = {
       matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:2c";
       linkConfig.Name = "lan0";
     };
-    "10-vm0" = {
+    "30-vnet0" = {
       matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:84";
-      linkConfig.Name = "vm0";
+      linkConfig = { Name = "vnet0"; MTUBytes = "9000"; };
     };
-    "10-vm1" = {
+    "40-peer0" = {
       matchConfig.MACAddress = lib.mkDefault "00:1a:4a:ad:2a:c7";
-      linkConfig.Name = "vm1";
+      linkConfig = { Name = "peer0"; MTUBytes = "9000"; };
+    };
+    "50-vf0" = {
+      matchConfig.Path = "pci-0000:01:00.0";
+      linkConfig = { Name = "vf0"; MTUBytes = "9000"; };
     };
   };
 
-  # WAN. Dynamic config from ISP.
-  systemd.network.networks."10-wan0" = {
-    matchConfig.Name = "wan0";
-    networkConfig.DHCP = "ipv4";
+  # wan0 uses DHCP, lan0 is VIP, vnet0 and peer0 are static.
+  systemd.network.networks = {
+    "10-wan0" = {
+      matchConfig.Name = "wan0";
+      networkConfig.DHCP = "ipv4";
+      tunnel = [ "he-ipv6" ];
+    };
+    "20-lan0" = {
+      matchConfig.Name = "lan0";
+    };
+    "30-vnet0" = {
+      matchConfig.Name = "vnet0";
+      address = lib.mkDefault [ "172.16.0.11/20" ];
+    };
+    "40-peer0" = {
+      matchConfig.Name = "peer0";
+      addresses = lib.mkDefault [
+        { Address = "172.16.200.1/32"; Peer = "172.16.200.2/32"; }
+      ];
+    };
+    "60-he-ipv6" = let
+      prefix = {
+        fabric = "2001:470:18:527";
+        velvet = "2001:470:18:55c";
+      }.${config.networking.hostName};
+    in {
+      matchConfig.Name = "he-ipv6";
+      address = [ "${prefix}::2/64" ];
+      routes = lib.singleton {
+        Destination = "::/0";
+        Gateway = "${prefix}::1";
+      };
+      # HE sends no RAs; the default route above is all there is.
+      networkConfig.IPv6AcceptRA = false;
+    };
   };
 
-  # LAN. Configure static IP only.
-  # kea handles DHCP and keepalived handles gateway VIP.
-  systemd.network.networks."10-lan0" = {
-    matchConfig.Name = "lan0";
-    address = lib.mkDefault [ "192.168.1.2/24" ];
+  # 6in4 to tunnelbroker.net; IPv6 rides a sit device via wan0.
+  systemd.network.netdevs."60-he-ipv6" = {
+    netdevConfig = {
+      Name = "he-ipv6";
+      Kind = "sit";
+      MTUBytes = "1480";
+    };
+    tunnelConfig = {
+      Local = "dhcp4";
+      Remote = "216.218.221.6";
+      TTL = 255;
+    };
   };
 
-  # VM 0. Host handles DHCP.
-  systemd.network.networks."10-vm0" = {
-    matchConfig.Name = "vm0";
-    address = lib.mkDefault [ "172.16.0.2/20" ];
-  };
-
-  # VM 1.
-  systemd.network.networks."10-vm1" = {
-    matchConfig.Name = "vm1";
-    address = lib.mkDefault [ "172.16.16.2/20" ];
-  };
-
-  # Firewall. Custom nftables ruleset, NixOS firewall disabled.
+  # Use custom nftables ruleset, disable builtin firewall.
   networking.nftables.enable = true;
   networking.firewall.enable = false;
 
   networking.nftables.ruleset = ''
-    define WAN = { "wan0", "wg0", "wg1" }
-    define LAN = { "lan0", "vm0", "vm1" }
+    define WAN = { "wan0", "wg0", "wg1", "wg2" }
+    define LAN = { "lan0", "vnet0" }
 
     table inet filter {
       flowtable forward_offload {
         hook ingress priority filter;
-        devices = { "wan0", "wg0", "wg1", "lan0", "vm0", "vm1" };
+        devices = { $WAN, $LAN, "peer0" };
       }
 
       chain syn_flood {
@@ -114,29 +142,35 @@
         ct state invalid drop
         ct state { established, related } accept
 
+        # Inter-router link. VRRP/Kea messages rides peer0 only; the VIPs are
+        # on lan0 and vnet0. Kept above the reverse path checks.
+        iifname "peer0" meta l4proto vrrp accept
+        iifname "peer0" meta l4proto ah accept
+        iifname "peer0" tcp dport 8000 accept
+
         fib saddr . iif oif missing drop
         fib daddr . iif type != { local, broadcast, multicast } drop
         tcp flags & (fin | syn | rst | ack) == syn jump syn_flood
 
+        # Accept ICMP and ICMPv6.
         icmp type { echo-request, echo-reply, destination-unreachable, time-exceeded } accept
         icmpv6 type { echo-request, echo-reply, destination-unreachable, time-exceeded, packet-too-big } accept
         icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit, nd-router-advert } accept
 
-        # Accept DHCP replies on interfaces.
-        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv4 udp dport bootpc accept
-        iifname { "wan0", "vm0", "vm1" } meta nfproto ipv6 udp dport dhcpv6-client accept
+        # Accept DHCP replies on DHCP interfaces.
+        iifname { "wan0", "vnet0" } meta nfproto ipv4 udp dport bootpc accept
+        iifname { "wan0", "vnet0" } meta nfproto ipv6 udp dport dhcpv6-client accept
 
-        # LAN. Accept SSH, DNS, DHCP requests, and VRRP/AH.
+        # HE 6in4. The tunnel arrives as IP protocol 41 from the PoP.
+        iifname "wan0" ip saddr 216.218.221.6 ip protocol 41 accept
+
+        # LAN. Accept SSH, DNS and DHCP requests, also iperf3.
         iifname $LAN tcp dport ssh accept
         iifname $LAN udp dport domain accept
         iifname $LAN tcp dport domain accept
         iifname $LAN meta nfproto ipv4 udp dport bootps accept
         iifname $LAN meta nfproto ipv6 udp dport dhcpv6-server accept
-        iifname $LAN meta l4proto vrrp accept
-        iifname $LAN meta l4proto ah accept
-
-        # VM 0. Accept kea control socket messages.
-        iifname "vm0" tcp dport 8000 ip saddr { 172.16.0.2, 172.16.0.3 } accept
+        iifname $LAN tcp dport 5201 accept
       }
 
       chain forward {
@@ -147,7 +181,11 @@
         ct state { established, related } accept
 
         iifname $LAN oifname $WAN accept
-        iifname "lan0" oifname { "vm0", "vm1" } accept
+
+        # HE 6in4. Kept out of $WAN so it stays out of the flowtable;
+        # tunnelled flows cannot be offloaded.
+        iifname $LAN oifname "he-ipv6" accept
+        iifname "lan0" oifname "vnet0" accept
       }
 
       chain mangle_prerouting {
@@ -156,8 +194,9 @@
 
       chain mangle_forward {
         type filter hook forward priority mangle; policy accept;
-        # MSS clamping for all outgoing interfaces.
-        tcp flags & (fin | syn | rst) == syn tcp option maxseg size set rt mtu
+        # Override MSS for outgoing traffic.
+        oifname $WAN tcp flags & (fin | syn | rst) == syn tcp option maxseg size set rt mtu
+        oifname "he-ipv6" tcp flags & (fin | syn | rst) == syn tcp option maxseg size set rt mtu
       }
     }
 
@@ -174,21 +213,30 @@
     sed -i '/flow add @ft/d' ruleset.conf
   '';
 
+  # iperf3 server. Firewall limits it to $LAN.
+  services.iperf3.enable = true;
+
   # DHCP server. Both nodes always run kea; the HA hook decides
   # which node answers DHCP and shadows leases to the other.
   services.kea.dhcp4 = {
     enable = true;
     settings = {
-      interfaces-config.interfaces = [ "lan0" ];
+      # lan0 only has an address while this node holds the VIP, so the
+      # standby runs socketless.
+      interfaces-config = {
+        interfaces = [ "lan0" ];
+        service-sockets-max-retries = 5;
+        service-sockets-retry-wait-time = 2000;
+      };
       valid-lifetime = 604800;
 
       # HTTP control channel for the HA hook to talk to the partner kea.
-      # Bound on vm0 so inter-router chat stays off the main LAN.
+      # Bound on peer0 so inter-router chat stays off every shared segment.
       control-sockets = lib.singleton {
         socket-type = "http";
         socket-address = {
-          fabric = "172.16.0.2";
-          velvet = "172.16.0.3";
+          fabric = "172.16.200.1";
+          velvet = "172.16.200.2";
         }.${config.networking.hostName};
         socket-port = 8000;
       };
@@ -214,8 +262,8 @@
             # Take over when heartbeat fails and client request is dropped.
             max-unacked-clients = 1;
             peers = [
-              { name = "fabric"; url = "http://172.16.0.2:8000/"; role = "primary"; auto-failover = true; }
-              { name = "velvet"; url = "http://172.16.0.3:8000/"; role = "standby"; auto-failover = true; }
+              { name = "fabric"; url = "http://172.16.200.1:8000/"; role = "primary"; auto-failover = true; }
+              { name = "velvet"; url = "http://172.16.200.2:8000/"; role = "standby"; auto-failover = true; }
             ];
           };
         }
@@ -225,7 +273,7 @@
         id = 1;
         subnet = "192.168.1.0/24";
         pools = lib.singleton {
-          pool = "192.168.1.11 - 192.168.1.253";
+          pool = "192.168.1.101 - 192.168.1.253";
         };
         option-data = [
           { name = "routers"; data = "192.168.1.1"; }
@@ -281,30 +329,23 @@
 
     vrrpInstances = {
       lan0 = {
-        interface = "lan0";
+        interface = "peer0";
         state = lib.mkDefault "MASTER";
         virtualRouterId = 51;
         priority = lib.mkDefault 200;
         virtualIps = lib.singleton {
           addr = "192.168.1.1/24";
+          dev = "lan0";
         };
       };
-      vm0 = {
-        interface = "vm0";
+      vnet0 = {
+        interface = "peer0";
         state = lib.mkDefault "MASTER";
         virtualRouterId = 52;
         priority = lib.mkDefault 200;
         virtualIps = lib.singleton {
           addr = "172.16.0.10/20";
-        };
-      };
-      vm1 = {
-        interface = "vm1";
-        state = lib.mkDefault "MASTER";
-        virtualRouterId = 53;
-        priority = lib.mkDefault 200;
-        virtualIps = lib.singleton {
-          addr = "172.16.16.10/20";
+          dev = "vnet0";
         };
       };
     };
@@ -315,10 +356,10 @@
         script_user root
       }
       vrrp_sync_group ROUTER {
-        group { lan0 vm0 vm1 }
+        group { lan0 vnet0 }
         track_interface { lan0 wan0 }
         track_script { check_wan }
-        notify_master "${pkgs.systemd}/bin/systemctl start kea-dhcp4-server"
+        notify_master "${pkgs.systemd}/bin/systemctl restart kea-dhcp4-server"
         notify_fault  "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
       }
     '';
@@ -338,19 +379,15 @@
         interface = [
           "192.168.1.1"
           "172.16.0.10"
-          "172.16.16.10"
           "127.0.0.1"
         ];
         access-control = [
-          "192.168.1.0/24 allow"
-          "172.16.0.0/20 allow"
-          "172.16.16.0/20 allow"
-          "127.0.0.0/8 allow"
+          "0.0.0.0/0 allow"
+          "::/0 allow"
         ];
         local-zone = ''"home." static'';
 
-        # Until we have working IPv6.
-        do-ip6 = false;
+        do-ip6 = true;
 
         so-rcvbuf = "8m";
         so-sndbuf = "8m";
@@ -390,9 +427,6 @@
               ip link add wg0 type wireguard
           ip link show wg1 >/dev/null 2>&1 || \
               ip link add wg1 type wireguard
-
-          ip link set wg0 up
-          ip link set wg1 up
 
           ip route show table 100 | grep -q "^default" || \
               ip route add default table 100 \
