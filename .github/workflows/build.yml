@@ -80,20 +80,41 @@ jobs:
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'toplevel')
       run: |
+        set -o pipefail
         nix build -L --keep-going --fallback \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.toplevel \
+          2>&1 | tee -a nix-build.log
     - name: Build vm for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'vm')
       run: |
+        set -o pipefail
         nix build -L --keep-going --fallback --option post-build-hook "" \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.vm \
+          2>&1 | tee -a nix-build.log
     - name: Build release for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'release')
       run: |
+        set -o pipefail
         nix build -L --keep-going --fallback --option post-build-hook "" \
-          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release
+          .#packages.${{matrix.system}}.nixosConfigurations.${{matrix.config}}.config.system.build.release \
+          2>&1 | tee -a nix-build.log
         find -L result -name '*.zst' -exec cp -a {} . \;
         echo "artifact=$(ls *.zst | tee /dev/stderr)" >> "$GITHUB_ENV"
+    - name: Show logs of failed builds
+      if: failure()
+      run: |
+        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+          | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
+        if [ -z "$drvs" ]; then
+          echo "No failed derivation found, showing last 100 lines of output:"
+          tail -n 100 nix-build.log
+          exit 0
+        fi
+        for drv in $drvs; do
+          echo "::group::nix log $drv"
+          nix log "$drv" 2>&1 | tail -n 100 || true
+          echo "::endgroup::"
+        done
     - uses: actions/upload-artifact@main
       if: env.artifact != ''
       with:
@@ -117,8 +138,25 @@ jobs:
         server-url: https://niks3.usertam.dev
     - name: Build ${{matrix.config}}.toplevel
       run: |
+        set -o pipefail
         nix build -L --keep-going --fallback \
-          .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel
+          .#darwinConfigurations.${{matrix.config}}.config.system.build.toplevel \
+          2>&1 | tee -a nix-build.log
+    - name: Show logs of failed builds
+      if: failure()
+      run: |
+        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+          | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
+        if [ -z "$drvs" ]; then
+          echo "No failed derivation found, showing last 100 lines of output:"
+          tail -n 100 nix-build.log
+          exit 0
+        fi
+        for drv in $drvs; do
+          echo "::group::nix log $drv"
+          nix log "$drv" 2>&1 | tail -n 100 || true
+          echo "::endgroup::"
+        done
 
   build-status:
     name: Build Status
