@@ -13,13 +13,13 @@
     services.openssh = {
       enable = true;
     }
-    // lib.optionalAttrs pkgs.stdenv.isLinux {
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       settings = {
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
       };
     }
-    // lib.optionalAttrs pkgs.stdenv.isDarwin {
+    // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
       extraConfig = ''
         PasswordAuthentication no
         KbdInteractiveAuthentication no

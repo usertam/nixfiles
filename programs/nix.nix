@@ -40,7 +40,7 @@
       experimental-features = [
         "nix-command" "flakes"
         "auto-allocate-uids"
-      ] ++ lib.optionals pkgs.stdenv.isLinux [
+      ] ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
         "cgroups"
       ];
       auto-allocate-uids = true;
@@ -49,7 +49,7 @@
       use-case-hack = false;
       warn-dirty = false;
       accept-flake-config = false;
-      extra-sandbox-paths = lib.optionals pkgs.stdenv.isDarwin [
+      extra-sandbox-paths = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
         "/private/etc/ssl/openssl.cnf"
       ];
       http-connections = 0;                   # Uncap parallel TCP connections.
@@ -63,7 +63,7 @@
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       trusted-users = [ "root" ];
-    } // lib.optionalAttrs pkgs.stdenv.isLinux {
+    } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       use-cgroups = true;
     };
 
@@ -80,7 +80,7 @@
   # What happens next is that it will try to state-manage (aka delete) the nixbld users/group, which is forbidden.
   # The proper fix will be to create users.groups.nixbld unconditional, and allow deletion of nixbld users.
   # But the hotfix for the assertions is that we just don't let nix-darwin manage/touch any users/groups.
-  users = lib.optionalAttrs pkgs.stdenv.isDarwin {
+  users = lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
     knownGroups = lib.mkForce [ ];
     knownUsers = lib.mkForce [ ];
   };

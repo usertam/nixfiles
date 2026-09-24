@@ -39,10 +39,10 @@
       ]
     );
   }
-  // lib.optionalAttrs pkgs.stdenv.isLinux {
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     autosuggestions.enable = true;
   }
-  // lib.optionalAttrs pkgs.stdenv.isDarwin {
+  // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
     # Manually install zsh-autosuggestions.
     interactiveShellInit = ''
       source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -63,7 +63,7 @@
   ];
 
   # Set default shell to zsh, in NixOS.
-  users = lib.optionalAttrs pkgs.stdenv.isLinux {
+  users = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
     defaultUserShell = "/run/current-system/sw/bin/zsh";
   };
 }

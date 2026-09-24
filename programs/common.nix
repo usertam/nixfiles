@@ -32,12 +32,12 @@ in
     tcpdump
     usbutils
     wireguard-tools
-  ] ++ lib.optionals pkgs.stdenv.isLinux [
+  ] ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
     conntrack-tools
     ethtool
     nftables
     ghostty.terminfo
-  ] ++ lib.optionals pkgs.stdenv.isDarwin [
+  ] ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
     ghostty-bin.terminfo
   ];
 
