@@ -54,6 +54,16 @@ jobs:
       run: |
         git switch -c staging
         nix flake update --commit-lock-file
+    - name: Update kernels-org.json
+      continue-on-error: true
+      run: |
+        curl -fsSL -o hosts/common/update-mainline.py \
+          https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/os-specific/linux/kernel/update-mainline.py
+        COMMIT=1 NIX_PATH=nixpkgs=channel:nixpkgs-unstable \
+          nix-shell hosts/common/update-mainline.py
+        rm hosts/common/update-mainline.py
+    - name: Check for updates
+      run: |
         if ! git diff origin/master staging --exit-code; then
           echo "FLAKE_UPDATE=true" >> $GITHUB_ENV
         fi
@@ -64,7 +74,7 @@ jobs:
         if [ -z $(gh pr list --head staging) ]; then
           gh pr create --base master --head staging \
             --title 'Bump flakes inputs' \
-            --body 'Automatic bump by running `nix flake update --commit-lock-file`.'
+            --body 'Automatic bump by running `nix flake update --commit-lock-file` and nixpkgs `update-mainline.py`.'
         fi
       env:
         GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}

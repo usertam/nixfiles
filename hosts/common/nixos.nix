@@ -103,14 +103,26 @@
   boot.kernelPackages =
     with pkgs;
     let
+      inherit (lib.importJSON ./kernels-org.json) testing;
+      linux_testing' = linux_testing.override {
+        argsOverride = rec {
+          inherit (testing) version;
+          modDirVersion = lib.versions.pad 3 version;
+          src = fetchzip {
+            url = "https://git.kernel.org/torvalds/t/linux-${version}.tar.gz";
+            inherit (testing) hash;
+          };
+        };
+      };
       base =
         if !config.boot.zfs.enabled then
-          linuxPackages_testing
+          # Same as upstream: a stale rc yields to latest once the release lands.
+          if linux_latest.kernelAtLeast linux_testing'.baseVersion then linux_latest else linux_testing'
         else if !linuxPackages_latest.zfs_unstable.meta.broken then
-          linuxPackages_latest
+          linux_latest
         else
-          linuxPackages;
-      kernel = base.kernel.override {
+          linux;
+      kernel = base.override {
         structuredExtraConfig = with lib.kernel; {
           LIVEPATCH = yes;
         };
