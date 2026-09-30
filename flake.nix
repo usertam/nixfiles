@@ -11,40 +11,42 @@
   };
 
   outputs = { self, nixpkgs, darwin, ... }@inputs: {
-    packages = with nixpkgs.lib; genAttrs systems.flakeExposed (system: {
-      nixosConfigurations = let
-        withModules = modules: nixpkgs.lib.nixosSystem {
-          inherit system modules;
-          specialArgs = { inherit inputs system; };
+    packages = with nixpkgs.lib; genAttrs systems.flakeExposed (system:
+      optionalAttrs (systems.elaborate system).isLinux {
+        nixosConfigurations = let
+          withModules = modules: nixpkgs.lib.nixosSystem {
+            inherit system modules;
+            specialArgs = { inherit inputs system; };
+          };
+        in {
+          generic = nixpkgs.lib.recurseIntoAttrs {
+            common = withModules [ ./hosts/common/nixos.nix ];
+            docker = withModules [ ./hosts/common/docker.nix ];
+          };
+          installer = withModules [ ./hosts/installer.nix ];
+          tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
+          zenith = withModules [ ./hosts/zenith.nix ];
+          fabric = withModules [ ./hosts/fabric.nix ];
+          velvet = withModules [ ./hosts/velvet.nix ];
+          lithos = withModules [ ./hosts/lithos.nix ];
+          tecton = withModules [ ./hosts/tecton.nix ];
+          nova = withModules [ ./hosts/nova.nix ];
+          slate = withModules [ ./hosts/slate.nix ];
+          castor = withModules [ ./hosts/castor.nix ];
+          pollux = withModules [ ./hosts/pollux.nix ];
+          thaum = withModules [ ./hosts/thaum.nix ];
         };
-      in {
-        generic = nixpkgs.lib.recurseIntoAttrs {
-          common = withModules [ ./hosts/common/nixos.nix ];
-          docker = withModules [ ./hosts/common/docker.nix ];
+      } // optionalAttrs (systems.elaborate system).isDarwin {
+        darwinConfigurations = let
+          withModules = modules: darwin.lib.darwinSystem {
+            inherit system modules;
+            specialArgs = { inherit inputs system; };
+          };
+        in {
+          gale = withModules [ ./hosts/gale.nix ];
+          work = withModules [ ./hosts/work.nix ];
         };
-        installer = withModules [ ./hosts/installer.nix ];
-        tsrvbld = withModules [ ./hosts/tsrvbld.nix ];
-        zenith = withModules [ ./hosts/zenith.nix ];
-        fabric = withModules [ ./hosts/fabric.nix ];
-        velvet = withModules [ ./hosts/velvet.nix ];
-        lithos = withModules [ ./hosts/lithos.nix ];
-        tecton = withModules [ ./hosts/tecton.nix ];
-        nova = withModules [ ./hosts/nova.nix ];
-        slate = withModules [ ./hosts/slate.nix ];
-        castor = withModules [ ./hosts/castor.nix ];
-        pollux = withModules [ ./hosts/pollux.nix ];
-        thaum = withModules [ ./hosts/thaum.nix ];
-      };
-
-      darwinConfigurations = let
-        withModules = modules: darwin.lib.darwinSystem {
-          inherit system modules;
-          specialArgs = { inherit inputs system; };
-        };
-      in {
-        gale = withModules [ ./hosts/gale.nix ];
-        work = withModules [ ./hosts/work.nix ];
-      };
-    });
+      }
+    );
   };
 }
