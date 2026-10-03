@@ -1,4 +1,4 @@
-name: "Stage flakes updates"
+name: "Create staging updates"
 on:
   workflow_dispatch:
     inputs:
@@ -54,14 +54,29 @@ jobs:
       run: |
         git switch -c staging
         nix flake update --commit-lock-file
-    - name: Update kernels-org.json
-      continue-on-error: true
+    - name: Update kernel definitions
       run: |
-        curl -fsSL -o hosts/common/update-mainline.py \
-          https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/os-specific/linux/kernel/update-mainline.py
-        COMMIT=1 NIX_PATH=nixpkgs=channel:nixpkgs-unstable \
-          nix-shell hosts/common/update-mainline.py
-        rm hosts/common/update-mainline.py
+        set -o pipefail
+        # Regenerate from releases.json, prefetching hashes as it carries none.
+        # Testing tracks mainline, rc or release; stable picks up a release from its first point release.
+        curl -fsSL https://www.kernel.org/releases.json | jq -r '
+          (.releases[] | select(.moniker == "mainline")
+            | "testing \(.version) https://git.kernel.org/torvalds/t/linux-\(.version).tar.gz --unpack"),
+          ([.releases[] | select(.moniker == "stable")] | max_by(.version | split(".") | map(tonumber))
+            | "stable \(.version) https://cdn.kernel.org/pub/linux/kernel/v\(.version | split(".")[0]).x/linux-\(.version).tar.xz")
+        ' | while read -r key version url unpack; do
+          hash=$(nix store prefetch-file --json $unpack "$url" | jq -r .hash)
+          jq -n --arg k "$key" --arg v "$version" --arg h "$hash" '{($k): {version: $v, hash: $h}}'
+        done | jq -s --indent 4 add > hosts/common/kernels.json
+        # Commit if changed, listing version bumps against the committed file.
+        git diff --quiet hosts/common/kernels.json || \
+          git commit hosts/common/kernels.json -m "$(jq -rn \
+            --argjson old "$(git show HEAD:hosts/common/kernels.json)" \
+            --argjson new "$(< hosts/common/kernels.json)" '
+              [{testing: "mainline", stable: "stable"} | to_entries[]
+                | select($old[.key].version != $new[.key].version)
+                | "linux_\(.value): \($old[.key].version) -> \($new[.key].version)"] | join(", ")
+            ')"
     - name: Check for updates
       run: |
         if ! git diff origin/master staging --exit-code; then
@@ -71,10 +86,19 @@ jobs:
       if: env.FLAKE_UPDATE == 'true'
       run: |
         git push -f origin staging:staging
-        if [ -z $(gh pr list --head staging) ]; then
+        body='Automatic bump by running `nix flake update --commit-lock-file`.'
+        # Append the kernels.json diff, minus its file headers, if the kernels moved.
+        if ! git diff --quiet origin/master staging -- hosts/common/kernels.json; then
+          printf -v body '%s Also bumped `kernels.json` with\n```diff\n%s\n```' "$body" \
+            "$(git diff origin/master staging -- hosts/common/kernels.json | sed '1,/^+++ /d')"
+        fi
+        # Create the PR, or refresh the body of the open one to match the force-push.
+        if [ -z "$(gh pr list --head staging)" ]; then
           gh pr create --base master --head staging \
-            --title 'Bump flakes inputs' \
-            --body 'Automatic bump by running `nix flake update --commit-lock-file` and nixpkgs `update-mainline.py`.'
+            --title 'Apply staging updates' \
+            --body "$body"
+        else
+          gh pr edit staging --body "$body"
         fi
       env:
         GH_TOKEN: ${{ steps.staging-bot-token.outputs.token }}

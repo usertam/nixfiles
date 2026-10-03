@@ -98,37 +98,56 @@
     )
   );
 
-  # Use the mainline or latest kernel when possible, subject to modules needed.
-  # Rebuild the selected kernel with structuredExtraConfig.
+  # Track the testing/stable kernels pinned in kernels.json, falling back where
+  # out-of-tree modules (ZFS) need it, and rebuild with extra config.
   boot.kernelPackages =
-    with pkgs;
     let
-      inherit (lib.importJSON ./kernels-org.json) testing;
-      linux_testing' = linux_testing.override {
-        argsOverride = rec {
-          inherit (testing) version;
-          modDirVersion = lib.versions.pad 3 version;
-          src = fetchzip {
-            url = "https://git.kernel.org/torvalds/t/linux-${version}.tar.gz";
-            inherit (testing) hash;
+      inherit (lib.importJSON ./kernels.json) testing stable;
+
+      # Swap a nixpkgs kernel's version and source, keeping its patches and config.
+      overrideKernel =
+        kernel:
+        { version, ... }:
+        src:
+        kernel.override {
+          argsOverride = {
+            inherit version src;
+            modDirVersion = lib.versions.pad 3 version;
           };
         };
-      };
+
+      # Fetch as upstream mainline.nix does, so sources share nixpkgs store paths.
+      linux_testing' = overrideKernel pkgs.linux_testing testing (
+        pkgs.fetchzip {
+          url = "https://git.kernel.org/torvalds/t/linux-${testing.version}.tar.gz";
+          inherit (testing) hash;
+        }
+      );
+
+      linux_stable' = overrideKernel pkgs.linux_latest stable (
+        pkgs.fetchurl {
+          url = "mirror://kernel/linux/kernel/v${lib.versions.major stable.version}.x/linux-${stable.version}.tar.xz";
+          inherit (stable) hash;
+        }
+      );
+
+      zfsSupports = kernel: !(pkgs.linuxPackagesFor kernel).zfs_unstable.meta.broken;
+
       base =
-        if !config.boot.zfs.enabled then
-          # Same as upstream: a stale rc yields to latest once the release lands.
-          if linux_latest.kernelAtLeast linux_testing'.baseVersion then linux_latest else linux_testing'
-        else if !linuxPackages_latest.zfs_unstable.meta.broken then
-          linux_latest
+        # If ZFS is needed, prefer the latest stable when supported.
+        if config.boot.zfs.enabled then
+          if zfsSupports linux_stable' then linux_stable' else pkgs.linux
+        # Testing yields to stable once stable catches up to it.
+        else if linux_stable'.kernelAtLeast linux_testing'.baseVersion then
+          linux_stable'
         else
-          linux;
+          linux_testing';
+
       kernel = base.override {
-        structuredExtraConfig = with lib.kernel; {
-          LIVEPATCH = yes;
-        };
+        structuredExtraConfig.LIVEPATCH = lib.kernel.yes;
       };
     in
-    lib.mkDefault (linuxPackagesFor kernel);
+    lib.mkDefault (pkgs.linuxPackagesFor kernel);
 
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
