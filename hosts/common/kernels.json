@@ -1,10 +1,10 @@
 {
     "mainline": {
-        "version": "7.3-rc5",
-        "hash": "sha256-NrTyfot19uJ1SulXU98z2V+leOjjjLmoueX8pnyvn+o="
+        "version": "7.3-rc6",
+        "hash": "sha256-310GZztrJw+mkRFQ3IQ1pvTafElqHVKU0HMcZDk1x2c="
     },
     "stable": {
-        "version": "7.2.8",
-        "hash": "sha256-EujVqXPRrXxaXGmILkAisTHtcV23AD/c12Dd+MPlGUE="
+        "version": "7.2.9",
+        "hash": "sha256-tMXfvlGjZKbH8DhpIA+IyOH3dANTkAXxS3/GvJG42Lo="
     }
 }
