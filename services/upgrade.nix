@@ -29,7 +29,7 @@
 
     # Overriding the default upgrade script.
     # Verify if latest commit is signed with the public key.
-    # If unsigned, accept if it's a valid lockfile upgrade.
+    # If unsigned, accept if it's a valid lockfile or kernel version upgrade.
     script = lib.mkBefore (''
       git clone https://github.com/usertam/nixfiles.git "$PWD"
 
@@ -62,16 +62,40 @@
           exit 1
         fi
 
-        # Accept only if the diff from that commit is exclusively flake.lock.
+        # Accept only if the diff from that commit is exclusively flake.lock and kernels.json.
         CHANGED=$(git diff --name-only "$LAST_SIGNED" HEAD 2>&1)
-        if [ "$CHANGED" != "flake.lock" ]; then
-          echo 'Latest commit is unsigned but has changes beyond flake.lock, abort.'
+        if grep -qvxF -e flake.lock -e hosts/common/kernels.json <<< "$CHANGED"; then
+          echo 'Latest commit is unsigned but has changes beyond flake.lock and kernels.json, abort.'
           echo 'Changed files: '
           git diff --name-only "$LAST_SIGNED" HEAD 2>&1 | sed 's/^/    /'
           exit 1
         fi
 
-        echo 'Latest commit only modifies flake.lock, proceed with lock verification.'
+        # Verify kernels.json only bumps versions. Every entry must be either
+        # unchanged, or move to a strictly newer version with whatever hash.
+        # Masking version and hash, the rest must be identical, so kernels
+        # cannot be added, removed, or given new fields.
+        if grep -qxF hosts/common/kernels.json <<< "$CHANGED"; then
+          echo 'Checking kernels.json for strict version bumps...'
+          if ! jq -en \
+            --argjson old "$(git show "$LAST_SIGNED:hosts/common/kernels.json")" \
+            --argjson new "$(git show HEAD:hosts/common/kernels.json)" '
+              # Kernel.org versions as numbers, with rcs before their release: 7.3-rc5 < 7.3 < 7.3.1.
+              # Anything else parses to [], which is never newer than a real version.
+              def ver: [capture("^(?<maj>[0-9]+)\\.(?<min>[0-9]+)(\\.(?<pat>[0-9]+))?(-rc(?<rc>[0-9]+))?$")
+                | .maj, .min, .pat // 0, .rc // infinite | tonumber];
+              ($old | map_values(del(.version, .hash))) == ($new | map_values(del(.version, .hash)))
+              and all($old | keys[]; $new[.] == $old[.] or ($new[.].version | ver) > ($old[.].version | ver))
+            ' >/dev/null; then
+            echo 'Kernel definitions have changes beyond strict version bumps, abort.'
+            echo 'Change: '
+            git diff "$LAST_SIGNED" HEAD -- hosts/common/kernels.json | sed 's/^/    /'
+            exit 1
+          fi
+          echo 'Kernel definitions only have strict version bumps, proceed.'
+        fi
+
+        echo 'Latest commit only modifies flake.lock and kernels.json, proceed with lock verification.'
 
         # Extract the previous lockfile for comparison.
         git show "$LAST_SIGNED:flake.lock" > prev.lock
