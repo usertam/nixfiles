@@ -213,6 +213,10 @@
          	depends on !CFI || HAVE_CFI_ICALL_NORMALIZE_INTEGERS_RUSTC
       '';
 
+      kcfiCompat =
+        !config.boot.zfs.enabled
+        && !config.virtualisation.virtualbox.host.enable;
+
       kernel = variant.override (prev: {
         inherit buildLinux;
         stdenv = llvmStdenv;
@@ -222,6 +226,7 @@
         structuredExtraConfig = with lib.kernel; {
           LIVEPATCH = yes;
           LTO_CLANG_THIN = yes;
+          CFI = if kcfiCompat then yes else no;
         };
       });
 
