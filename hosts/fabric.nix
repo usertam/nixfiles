@@ -170,14 +170,17 @@
         # HE 6in4. The tunnel arrives as IP protocol 41 from the PoP.
         iifname "wan0" ip saddr 216.218.221.6 ip protocol 41 accept
 
-        # LAN. Accept SSH, DNS and DHCP requests, also iperf3.
+        # LAN. Accept SSH, DNS and DHCP requests.
         iifname $LAN tcp dport ssh accept
         iifname $LAN udp dport domain accept
         iifname $LAN tcp dport domain accept
         iifname $LAN meta nfproto ipv4 udp dport bootps accept
         iifname $LAN meta nfproto ipv6 udp dport dhcpv6-server accept
+
+        # LAN. Accept iperf3 and Tailscale direct connections.
         iifname $LAN tcp dport 5201 accept
         iifname $LAN udp dport 5201 accept
+        iifname $LAN udp dport 41641 accept
       }
 
       chain forward {
