@@ -12,6 +12,11 @@
   # Override the systemd derper service.
   systemd.services.tailscale-derper = let
     cfg = config.services.tailscale.derper;
+    meshWith = [
+      "2406:da1e:dbf:a600:8752:a0ad:99bf:2aea"  # castor
+      "2406:da1e:dbf:a601:97b0:b008:c2e6:f604"  # pollux
+    ];
+    meshPSKFile = "/var/lib/tailscale-derper/mesh-psk";
   in {
     serviceConfig.ExecStart = lib.mkForce (
       "${lib.getExe' cfg.package "derper"}"
@@ -19,7 +24,17 @@
       + " -c /var/lib/derper/derper.key"
       + " -hostname=${cfg.domain}"
       + " -stun=false"
+      + " -mesh-with=${lib.concatMapStringsSep "," (ip: "${cfg.domain}/${ip}") meshWith}"
+      + " -mesh-psk-file=\${CREDENTIALS_DIRECTORY}/mesh-psk"
     );
+    serviceConfig.LoadCredential = "mesh-psk:${meshPSKFile}";
+    unitConfig.ConditionPathExists = meshPSKFile;
+  };
+
+  systemd.paths.tailscale-derper = {
+    wantedBy = [ "multi-user.target" ];
+    pathConfig.PathExists =
+      config.systemd.services.tailscale-derper.unitConfig.ConditionPathExists;
   };
 
   # Enable ACME for derper.
