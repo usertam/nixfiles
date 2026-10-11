@@ -7,6 +7,7 @@
     ../services/monitoring.nix
     ../services/incus.nix
     ../services/niks3.nix
+    ../services/opndrive.nix
   ];
 
   # Host identity.
@@ -45,10 +46,9 @@
     };
   };
 
-  # Static networking.
+  # Ad-hoc, static systemd-networkd config.
   networking.useNetworkd = true;
-
-  systemd.network.networks."10-wan0" = {
+  systemd.network.networks."10-eth0" = {
     matchConfig.Name = "eth0";
     address = [
       "45.128.220.113/24"
@@ -65,5 +65,11 @@
       "2606:4700:4700::1111"
       "2606:4700:4700::1001"
     ];
+  };
+
+  # Web services behind nginx, niks3 and opndrive.
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "infra@usertam.dev";
   };
 }

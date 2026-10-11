@@ -8,11 +8,9 @@
   services.niks3 = {
     enable = true;
 
-    serverPackage = inputs.niks3.packages.${pkgs.stdenv.hostPlatform.system}.niks3-server.overrideAttrs {
-      postPatch = ''
-        cp ${./niks3_index.html} server/landing_page.html
-      '';
-    };
+    serverPackage = pkgs.newScope
+      inputs.niks3.packages.${pkgs.stdenv.hostPlatform.system}
+      ./pkgs/niks3-server/package.nix { };
 
     cacheUrl = "https://cache.usertam.dev";
     serverUrl = "https://niks3.usertam.dev";
@@ -49,11 +47,6 @@
       enableACME = true;
       forceSSL = true;
     };
-  };
-
-  security.acme = {
-    acceptTerms = true;
-    defaults.email = "infra@usertam.dev";
   };
 
   systemd.services.niks3 = {
