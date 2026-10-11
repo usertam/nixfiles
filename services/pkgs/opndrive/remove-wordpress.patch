@@ -1,0 +1,128 @@
+diff --git a/frontend/next.config.ts b/frontend/next.config.ts
+index 397a91f..50ff237 100644
+--- a/frontend/next.config.ts
++++ b/frontend/next.config.ts
+@@ -1,45 +1,10 @@
+ import type { NextConfig } from 'next';
+ 
+ const nextConfig: NextConfig = {
++  // Only the blog had remote images to optimize. Serve images as they are, so
++  // nothing reaches sharp; /_next/image then answers 404.
+   images: {
+-    remotePatterns: [
+-      {
+-        protocol: 'https',
+-        hostname: 'secure.gravatar.com',
+-        port: '',
+-        pathname: '/avatar/**',
+-      },
+-      {
+-        protocol: 'https',
+-        hostname: '**.gravatar.com',
+-        port: '',
+-        pathname: '/**',
+-      },
+-      {
+-        protocol: 'https',
+-        hostname: '**.wp.com',
+-        port: '',
+-        pathname: '/**',
+-      },
+-      {
+-        protocol: 'http',
+-        hostname: 'localhost',
+-        port: '',
+-        pathname: '/**',
+-      },
+-      {
+-        protocol: 'https',
+-        hostname: 'localhost',
+-        port: '',
+-        pathname: '/**',
+-      },
+-      {
+-        protocol: 'https',
+-        hostname: 'wordpress.sasewa.org',
+-        port: '',
+-        pathname: '/**',
+-      },
+-    ],
++    unoptimized: true,
+   },
+ };
+ 
+diff --git a/frontend/src/app/sitemap.ts b/frontend/src/app/sitemap.ts
+index b268cbe..17f5298 100644
+--- a/frontend/src/app/sitemap.ts
++++ b/frontend/src/app/sitemap.ts
+@@ -1,30 +1,10 @@
+ import { MetadataRoute } from 'next';
+ import { SITE_URL } from '@/config/links';
+-import { getAllPostSlugs } from '@/lib/wordpress/service';
+-import { isBlogEnabled } from '@/config/features';
+ import { PROVIDER_SLUGS } from '@/config/providers';
+ 
+ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+   const baseUrl = SITE_URL;
+ 
+-  // Get all blog post slugs only if blog is enabled
+-  let blogPosts: MetadataRoute.Sitemap = [];
+-
+-  if (isBlogEnabled()) {
+-    try {
+-      const postSlugs = await getAllPostSlugs();
+-      blogPosts = postSlugs.map((slug) => ({
+-        url: `${baseUrl}/blog/${slug}`,
+-        lastModified: new Date(),
+-        changeFrequency: 'weekly' as const,
+-        priority: 0.8,
+-      }));
+-    } catch (error) {
+-      console.error('Error fetching blog posts for sitemap:', error);
+-      // Continue without blog posts if there's an error
+-    }
+-  }
+-
+   const staticPages: MetadataRoute.Sitemap = [
+     {
+       url: baseUrl,
+@@ -61,15 +41,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+     },
+   ];
+ 
+-  // Only add blog index page if blog is enabled
+-  if (isBlogEnabled()) {
+-    staticPages.push({
+-      url: `${baseUrl}/blog`,
+-      lastModified: new Date(),
+-      changeFrequency: 'daily',
+-      priority: 0.9,
+-    });
+-  }
+-
+-  return [...staticPages, ...blogPosts];
++  return staticPages;
+ }
+diff --git a/frontend/src/shared/components/layout/site-footer.tsx b/frontend/src/shared/components/layout/site-footer.tsx
+index c9fbd23..d36ead5 100644
+--- a/frontend/src/shared/components/layout/site-footer.tsx
++++ b/frontend/src/shared/components/layout/site-footer.tsx
+@@ -2,7 +2,6 @@ import Link from 'next/link';
+ import { FaGithub } from 'react-icons/fa';
+ import { DISCORD_URL, DOCS_URL } from '@/config/links';
+ import { LICENSE_NAME, LICENSE_URL, REPOSITORY_URL } from '@/config/legal';
+-import { isBlogEnabled } from '@/config/features';
+ 
+ interface FooterLink {
+   label: string;
+@@ -21,10 +20,6 @@ function buildColumns(): FooterColumn[] {
+     { label: 'FAQ', href: '/#faq' },
+   ];
+ 
+-  if (isBlogEnabled()) {
+-    resources.push({ label: 'Blog', href: '/blog' });
+-  }
+-
+   return [
+     {
+       heading: 'Product',

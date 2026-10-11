@@ -20,6 +20,17 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-3kdCKzH1mOPICiEiX3vzypCI7faMD1m5769zfBxtuTU=";
   };
 
+  patches = [
+    # The spreadsheet preview parses files from the bucket with SheetJS, which
+    # stopped publishing to npm at 0.18.5: prototype pollution (CVE-2023-30533)
+    # and ReDoS (CVE-2024-22363) on a crafted file. Take 0.20.3 from their CDN.
+    ./xlsx-0.20.3.patch
+    # Unhook the blog from the sitemap and footer, and drop its image allowlist,
+    # which let in localhost and the *.wp.com proxy to anywhere. Images are then
+    # served as they are, and /_next/image answers 404.
+    ./remove-wordpress.patch
+  ];
+
   # Same subset as upstream Dockerfile, skips the docs site.
   pnpmWorkspaces = [ "frontend..." "@opndrive/s3-api..." ];
 
@@ -30,9 +41,9 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   pnpmDeps = fetchPnpmDeps {
-    inherit (finalAttrs) pname version src pnpmWorkspaces prePnpmInstall;
+    inherit (finalAttrs) pname version src patches pnpmWorkspaces prePnpmInstall;
     fetcherVersion = 4;
-    hash = "sha256-qhMoVVH9MvhZS9jCOoW7ruGkMsJcrHamGciyC01N56E=";
+    hash = "sha256-VU5n5k8R0Dl2KEKlzcjnKhlGp5KZlfORI1sP1A9W2yE=";
   };
 
   nativeBuildInputs = [
@@ -42,11 +53,7 @@ stdenv.mkDerivation (finalAttrs: {
     makeBinaryWrapper
   ];
 
-  env = {
-    NEXT_TELEMETRY_DISABLED = "1";
-    # Unset means enabled, which wants a WordPress backend.
-    NEXT_PUBLIC_ENABLE_BLOG = "false";
-  };
+  env.NEXT_TELEMETRY_DISABLED = "1";
 
   postPatch = ''
     # Emit a self-contained server, instead of shipping the whole node_modules.
@@ -54,9 +61,30 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail "const nextConfig: NextConfig = {" \
         "const nextConfig: NextConfig = { output: 'standalone', generateBuildId: () => process.env.NEXT_BUILD_ID ?? null,"
 
+    # The blog renders WordPress HTML unsanitized on this origin, next to the
+    # keys in localStorage. Remove it whole, rather than leave it behind a flag.
+    rm -r frontend/src/{app/blog,app/api,components/blog,components/seo,lib/seo,lib/wordpress,config/features.ts} \
+      frontend/public/og-blog.png
+
+    # The PDF preview frames public/pdf-viewer.html, which runs pdf.js 3.11.174
+    # (CVE-2024-4367) on any ?file= on this origin, next to the keys. Only the
+    # CSP stops it, which also breaks the page. Frame the signed URL instead,
+    # for the browser's own viewer on the bucket's origin.
+    rm frontend/public/pdf-viewer.html frontend/public/pdf.worker.min.js
+    substituteInPlace frontend/src/components/file-preview/viewers/pdf-viewer.tsx \
+      --replace-fail 'const pdfViewerUrl = `/pdf-viewer.html?file=''${encodeURIComponent(signedUrl)}&name=''${encodeURIComponent(file.name)}`;' \
+        'const pdfViewerUrl = signedUrl;'
+
+    # Preview and share links are inline, so a shared HTML, SVG or XML file runs
+    # as a page on the bucket's origin. Have those download instead; previews
+    # fetch() them or use <img>, which ignore the disposition.
+    substituteInPlace s3-api/src/index.ts \
+      --replace-fail "ResponseContentDisposition: 'inline'," \
+        'ResponseContentDisposition: /(html|xml)\b/.test(String(params.responseContentType)) ? "attachment" : "inline",'
+
     # NEXT_PUBLIC_* is inlined at build time; read the site URL from SITE_URL
     # at runtime instead, and render the routes using it per request.
-    substituteInPlace frontend/src/config/links.ts frontend/src/lib/seo/config.ts \
+    substituteInPlace frontend/src/config/links.ts \
       --replace-fail process.env.NEXT_PUBLIC_SITE_URL process.env.SITE_URL
     for route in robots sitemap; do
       echo "export const dynamic = 'force-dynamic';" >> frontend/src/app/$route.ts
@@ -103,7 +131,11 @@ stdenv.mkDerivation (finalAttrs: {
     cp -r frontend/public $out/share/opndrive/frontend/public
     cp -r frontend/.next/static $out/share/opndrive/frontend/.next/static
 
-    # Next.js writes its image cache under .next/cache; point it out of the store.
+    # Images are served unoptimized, so sharp and its prebuilt libvips are
+    # never loaded; leave them out.
+    rm -r $out/share/opndrive/node_modules/.pnpm/{sharp@*,@img+*,next@*/node_modules/sharp}
+
+    # Next.js writes its caches under .next/cache; point it out of the store.
     ln -s /var/cache/opndrive $out/share/opndrive/frontend/.next/cache
 
     # Next.js can only listen on a TCP port. Under systemd socket activation,
