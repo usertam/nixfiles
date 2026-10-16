@@ -88,6 +88,13 @@
         MACAddress = "00:1a:4a:0d:51:47";
       };
     };
+    "30-enp5s0f0np0" = {
+      matchConfig.Path = "pci-0000:05:00.0";
+      linkConfig = {
+        Name = "enp5s0f0np0";
+        SR-IOVVirtualFunctions = 8;
+      };
+    };
   };
 
   # Bridges.
