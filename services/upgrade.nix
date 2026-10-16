@@ -212,17 +212,32 @@
             continue
           fi
 
-          # Check B: new_rev is on the tracked branch.
-          STATUS_B=$(gh_api "repos/$OWNER/$REPO/compare/$NEW_REV...$REF" '.status')
-          case "$STATUS_B" in
-            ahead|identical)
-              echo "    + $NAME: ''${NEW_REV:0:7}...''${REF:0:7} is $STATUS_B"
-              ;;
-            *)
-              echo "    - $NAME: ''${NEW_REV:0:7}...''${REF:0:7} is $STATUS_B, expected ahead or identical"
-              VERIFY_FAILED=1
+          # Check B: new_rev is on the tracked branch. Staging may override
+          # nixpkgs to a whitelisted branch, so accept any branch listed.
+          BRANCHES=("$REF")
+          case "$NAME:$REF" in
+            nixpkgs:nixpkgs-unstable|nixpkgs:nixos-unstable-small)
+              BRANCHES=(nixpkgs-unstable nixos-unstable-small)
               ;;
           esac
+
+          ON_BRANCH=0
+          for BRANCH in "''${BRANCHES[@]}"; do
+            STATUS_B=$(gh_api "repos/$OWNER/$REPO/compare/$NEW_REV...$BRANCH" '.status')
+            case "$STATUS_B" in
+              ahead|identical)
+                echo "    + $NAME: ''${NEW_REV:0:7}...$BRANCH is $STATUS_B"
+                ON_BRANCH=1
+                break
+                ;;
+              *)
+                echo "    - $NAME: ''${NEW_REV:0:7}...$BRANCH is $STATUS_B, expected ahead or identical"
+                ;;
+            esac
+          done
+          if [ "$ON_BRANCH" -eq 0 ]; then
+            VERIFY_FAILED=1
+          fi
         done
 
         if [ "$VERIFY_FAILED" -ne 0 ]; then
