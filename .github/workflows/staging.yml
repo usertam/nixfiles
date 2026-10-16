@@ -7,6 +7,16 @@ on:
         required: true
         type: boolean
         default: false
+      override-nixpkgs:
+        description: 'Override the nixpkgs input with specified branch'
+        required: true
+        type: boolean
+        default: false
+      override-nixpkgs-branch:
+        description: 'Branch to override the nixpkgs input with, if enabled'
+        required: true
+        type: string
+        default: nixos-unstable-small
   schedule:
   - cron: '0 22 * * SUN'
 permissions:
@@ -16,6 +26,9 @@ jobs:
   staging:
     name: Stage updates on staging branch
     runs-on: ubuntu-latest
+    env:
+      # Empty unless the override is enabled, as on scheduled runs that carry no inputs.
+      NIXPKGS_BRANCH: ${{ inputs.override-nixpkgs && format('github:nixos/nixpkgs/{0}', inputs.override-nixpkgs-branch) || '' }}
     steps:
     - uses: actions/create-github-app-token@v2
       id: staging-bot-token
@@ -53,7 +66,8 @@ jobs:
     - name: Update flake lock file
       run: |
         git switch -c staging
-        nix flake update --commit-lock-file
+        nix flake update --commit-lock-file \
+          ${NIXPKGS_BRANCH:+--override-input nixpkgs "$NIXPKGS_BRANCH"}
     - name: Update kernel definitions
       run: |
         set -o pipefail
