@@ -243,6 +243,18 @@
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
 
+  # Enable zswap by default, leave maxPoolPercent up for tuning.
+  boot.zswap.enable = lib.mkDefault true;
+  boot.kernel.sysctl."vm.swappiness" = 100;
+
+  # Set up swapfile for zswap.
+  swapDevices = lib.mkIf (config.boot.zswap.enable) (lib.mkDefault [
+    { device = "/var/lib/swapfile"; size = 2 * 1024; options = [ "noatime" ]; }
+  ]);
+
+  # The VM drops all swap devices, and zswap can't run without one.
+  virtualisation.vmVariant.boot.zswap.enable = lib.mkVMOverride false;
+
   # Lock down boot partition to root.
   fileSystems = lib.mkIf
     (config.boot.loader.systemd-boot.enable || config.boot.lanzaboote.enable or false)

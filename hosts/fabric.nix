@@ -4,7 +4,6 @@
   imports = [
     "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/virtualisation/disk-image.nix"
-    ./common/lowmem.nix
     ./common/nixos.nix
     ../services/monitoring.nix
   ];
@@ -12,7 +11,7 @@
   # Host identity.
   networking.hostName = lib.mkDefault "fabric";
 
-  # Mission critical machine, do not switch.
+  # Never do "nixos-rebuild switch" on upgrades, apply changes on boot only.
   system.autoUpgrade.operation = "boot";
 
   # Enable auto login as root.
@@ -35,6 +34,9 @@
     "net.ipv6.conf.all.forwarding" = 1;
     "net.netfilter.nf_conntrack_max" = 262144;
   };
+
+  # Need a bigger zswap pool.
+  boot.zswap.maxPoolPercent = 50;
 
   # Networking.
   networking.useNetworkd = true;

@@ -15,7 +15,7 @@
   # Host identity.
   networking.hostName = "zenith";
 
-  # Mission critical machine, do not switch.
+  # Never do "nixos-rebuild switch" on upgrades, apply changes on boot only.
   system.autoUpgrade.operation = "boot";
 
   # Enable auto login as root.
@@ -36,6 +36,9 @@
   # Enable ZFS support.
   boot.supportedFilesystems.zfs = true;
   boot.zfs.forceImportRoot = true;
+
+  # Disable zswap and swapfile.
+  boot.zswap.enable = false;
 
   # Enable microcode updates.
   hardware.cpu.amd.updateMicrocode = true;

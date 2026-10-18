@@ -3,7 +3,6 @@
 {
   imports = [
     ./common/ec2.nix
-    ./common/lowmem.nix
     ../services/monitoring.nix
     ../services/tailscale.nix
     ../services/tailscale-relay.nix
@@ -17,6 +16,9 @@
     "net.core.busy_poll" = 50;
     "net.core.busy_read" = 50;
   };
+
+  # Need a bigger zswap pool.
+  boot.zswap.maxPoolPercent = 50;
 
   # Disable interrupt coalescing on the ENA interface, equivalent to
   # ethtool -C eth0 adaptive-rx off rx-usecs 0 tx-usecs 0.
