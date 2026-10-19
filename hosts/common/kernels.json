@@ -1,7 +1,7 @@
 {
     "mainline": {
-        "version": "7.3-rc7",
-        "hash": "sha256-b9Slv//a1PSty23X8RcdcMD6UiyhySL9MLx5MTZpNIU="
+        "version": "7.3",
+        "hash": "sha256-ca8CMAWKe1yzkQIn8sasUQxMLqdtfvC+wBFtX3819Zk="
     },
     "stable": {
         "version": "7.2.11",
