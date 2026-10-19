@@ -199,6 +199,7 @@
       "original": {
         "owner": "SaumonNet",
         "repo": "proxmox-nixos",
+        "rev": "0308a80324e3f70a159e8c4fe272927cd62845c8",
         "type": "github"
       }
     },
