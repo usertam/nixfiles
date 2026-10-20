@@ -6,6 +6,9 @@
   # Identity.
   networking.hostName = "velvet";
 
+  # Upgrade velvet ahead of fabric.
+  system.autoUpgrade.dates = "02:40";
+
   # Distinct virtio MACs.
   systemd.network.links = {
     "10-wan0".matchConfig.MACAddress  = "00:1a:4a:f4:c4:42";

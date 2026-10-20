@@ -11,9 +11,6 @@
   # Host identity.
   networking.hostName = lib.mkDefault "fabric";
 
-  # Never do "nixos-rebuild switch" on upgrades, apply changes on boot only.
-  system.autoUpgrade.operation = "boot";
-
   # Enable auto login as root.
   services.getty.autologinUser = lib.mkDefault "root";
 
@@ -511,6 +508,31 @@
       OnBootSec = "1min";
       OnUnitActiveSec = "5min";
     };
+  };
+
+  # Velvet will upgrade first, ensure velvet is ready before fabric upgrades.
+  systemd.services.nixos-unattended-upgrade = lib.mkIf (config.networking.hostName == "fabric") {
+    path = with pkgs; [ curl iputils jq ];
+    script = lib.mkBefore ''
+      echo 'Checking velvet before upgrading...'
+      if ! ping -n -q -c 3 -W 1 172.16.200.2 >/dev/null; then
+        echo 'Velvet is unreachable over peer0, abort.'
+        exit 1
+      fi
+      echo 'Velvet is reachable over peer0, proceed.'
+
+      # Velvet's kea enters hot-standby once it has synced leases with fabric
+      # and is ready to take over DHCP.
+      STATE=$(curl -fsS -m 5 -H 'Content-Type: application/json' \
+        -d '{"command": "ha-heartbeat", "service": ["dhcp4"]}' \
+        http://172.16.200.2:8000/ | jq -r '.[0].arguments.state // empty') || true
+      if [ "$STATE" != 'hot-standby' ]; then
+        echo "Velvet DHCP HA is in state ''${STATE:-unknown}, expected hot-standby, abort."
+        exit 1
+      fi
+      echo 'Velvet DHCP HA is in hot-standby, proceed.'
+      echo
+    '';
   };
 
   # Hack to override the build to produce the extra zst image.

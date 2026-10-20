@@ -15,8 +15,8 @@
   # Host identity.
   networking.hostName = "zenith";
 
-  # Never do "nixos-rebuild switch" on upgrades, apply changes on boot only.
-  system.autoUpgrade.operation = "boot";
+  # Never switch or reboot unattended after upgrades.
+  systemd.services.nixos-unattended-upgrade.enable = false;
 
   # Enable auto login as root.
   services.getty.autologinUser = lib.mkDefault "root";

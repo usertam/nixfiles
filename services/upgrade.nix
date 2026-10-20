@@ -3,6 +3,7 @@
 {
   system.autoUpgrade = {
     enable = lib.mkDefault true;
+    operation = "boot";
     flake = ".";
     upgrade = false;
   } // lib.optionalAttrs config.nix.gc.automatic {
@@ -18,6 +19,10 @@
       WorkingDirectory = "%t/nixos-upgrade";
     };
 
+    # Make the new generation active after the upgrade.
+    onSuccess = lib.mkIf config.systemd.services.nixos-unattended-upgrade.enable
+      [ "nixos-unattended-upgrade.service" ];
+
     path = with pkgs; [
       curl
       diffutils
@@ -27,10 +32,10 @@
       jq
     ];
 
-    # Overriding the default upgrade script.
+    # Prepend the fetching and checks to the default upgrade script.
     # Verify if latest commit is signed with the public key.
     # If unsigned, accept if it's a valid lockfile or kernel version upgrade.
-    script = lib.mkBefore (''
+    script = lib.mkBefore ''
       git clone https://github.com/usertam/nixfiles.git "$PWD"
 
       echo 'Trusted key for commit verification:'
@@ -264,10 +269,60 @@
       fi
 
       echo 'Upgrade checks passed, proceeding with nixos-upgrade.'
-    '' + lib.optionalString (config.system.autoUpgrade.operation == "switch") ''
+    '';
+  };
 
-      # Always save the built system to boot, before switch.
-      ${lib.getExe pkgs.nixos-rebuild} boot ${toString config.system.autoUpgrade.flags}
-    '');
+  systemd.services.nixos-unattended-upgrade = {
+    description = "NixOS Unattended Upgrade";
+    serviceConfig.Type = "oneshot";
+
+    # Don't let switch-to-configuration restart this unit mid-switch.
+    restartIfChanged = false;
+    unitConfig.X-StopOnRemoval = false;
+
+    # extract-vmlinux needs file to detect uncompressed images.
+    path = with pkgs; [ file linux-scripts ];
+
+    script = ''
+      BOOTED_PROFILE=$(readlink -f /run/booted-system)
+      CURRENT_PROFILE=$(readlink -f /run/current-system)
+      LATEST_PROFILE=$(readlink -f /nix/var/nix/profiles/system)
+
+      # Map store paths back to generation links.
+      # Take the newest if several generations share the store path.
+      BOOTED_LINK=$(find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
+        -lname "$BOOTED_PROFILE" -printf '%f\n' | sort -V | tail -n 1)
+      CURRENT_LINK=$(find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
+        -lname "$CURRENT_PROFILE" -printf '%f\n' | sort -V | tail -n 1)
+      LATEST_LINK=$(readlink /nix/var/nix/profiles/system)
+
+      echo "Booted system profile:  $BOOTED_LINK -> $BOOTED_PROFILE"
+      echo "Running system profile: $CURRENT_LINK -> $CURRENT_PROFILE"
+      echo "Latest system profile:  $LATEST_LINK -> $LATEST_PROFILE"
+
+      if [ "$BOOTED_PROFILE" = "$LATEST_PROFILE" ]; then
+        echo 'Latest system profile is booted system, nothing to do.'
+        exit 0
+      fi
+
+      # Kernel version banners, as /proc/version prints them.
+      # Read the latest one from its kernel image, decompressed if needed.
+      BOOTED_KERNEL=$(cat /proc/version)
+      LATEST_KERNEL=$(extract-vmlinux "$(readlink -f "$LATEST_PROFILE/kernel")" 2>/dev/null \
+        | LC_ALL=C grep -aom1 'Linux version .*' | head -1)
+
+      echo "Booted kernel version: $BOOTED_KERNEL"
+      echo "Latest kernel version: $LATEST_KERNEL"
+
+      if [ "$BOOTED_KERNEL" != "$LATEST_KERNEL" ] && ! ''${SKIP_REBOOT:-false}; then
+        echo 'Kernel version differs from booted kernel, rebooting in 15 minutes.'
+        shutdown -r +15
+      elif [ "$CURRENT_PROFILE" != "$LATEST_PROFILE" ]; then
+        echo 'Switching to latest system profile.'
+        "$LATEST_PROFILE/bin/switch-to-configuration" switch
+      else
+        echo 'Latest system profile is already active, nothing to do.'
+      fi
+    '';
   };
 }

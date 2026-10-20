@@ -63,6 +63,20 @@
     vagrant
   ];
 
+  # Skip unattended reboots while claude sessions are running.
+  # Switches still apply, and the reboot is retried next upgrade.
+  systemd.services.nixos-unattended-upgrade = {
+    path = [ pkgs.procps ];
+    script = lib.mkBefore ''
+      # Match argv[0]; the wrapper leaves the process named .claude-wrapped.
+      if SESSIONS=$(pgrep -af '^([^ ]*/)?claude( |$)'); then
+        echo 'Claude sessions are running, skip reboot.'
+        echo "$SESSIONS" | sed 's/^/    /'
+        SKIP_REBOOT=true
+      fi
+    '';
+  };
+
   # Cross-arch building support with binfmt and qemu.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];
   nix.settings.extra-platforms = [ "aarch64-linux" "riscv64-linux" "armv7l-linux" ];

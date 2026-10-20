@@ -11,6 +11,9 @@
 
   documentation.doc.enable = false;
 
+  systemd.services.nixos-upgrade.enable = false;
+  systemd.services.nixos-unattended-upgrade.enable = false;
+
   # Make release image; no options like tarballImage.compressImage here.
   system.build.release = config.system.build.tarball.override {
     compressCommand = "zstd";
