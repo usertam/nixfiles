@@ -60,6 +60,7 @@
     claude-code
     docker
     earthly
+    gh
     vagrant
   ];
 
