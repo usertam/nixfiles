@@ -285,20 +285,20 @@
 
     script = ''
       BOOTED_PROFILE=$(readlink -f /run/booted-system)
-      CURRENT_PROFILE=$(readlink -f /run/current-system)
+      ACTIVE_PROFILE=$(readlink -f /run/current-system)
       LATEST_PROFILE=$(readlink -f /nix/var/nix/profiles/system)
 
       # Map store paths back to generation links.
       # Take the newest if several generations share the store path.
       BOOTED_LINK=$(find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
         -lname "$BOOTED_PROFILE" -printf '%f\n' | sort -V | tail -n 1)
-      CURRENT_LINK=$(find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
-        -lname "$CURRENT_PROFILE" -printf '%f\n' | sort -V | tail -n 1)
+      ACTIVE_LINK=$(find /nix/var/nix/profiles -maxdepth 1 -name 'system-*-link' \
+        -lname "$ACTIVE_PROFILE" -printf '%f\n' | sort -V | tail -n 1)
       LATEST_LINK=$(readlink /nix/var/nix/profiles/system)
 
-      echo "Booted system profile:  $BOOTED_LINK -> $BOOTED_PROFILE"
-      echo "Running system profile: $CURRENT_LINK -> $CURRENT_PROFILE"
-      echo "Latest system profile:  $LATEST_LINK -> $LATEST_PROFILE"
+      echo "Booted system profile: $BOOTED_LINK -> $BOOTED_PROFILE"
+      echo "Active system profile: $ACTIVE_LINK -> $ACTIVE_PROFILE"
+      echo "Latest system profile: $LATEST_LINK -> $LATEST_PROFILE"
 
       if [ "$BOOTED_PROFILE" = "$LATEST_PROFILE" ]; then
         echo 'Latest system profile is booted system, nothing to do.'
@@ -317,7 +317,7 @@
       if [ "$BOOTED_KERNEL" != "$LATEST_KERNEL" ] && ! ''${SKIP_REBOOT:-false}; then
         echo 'Kernel version differs from booted kernel, rebooting in 15 minutes.'
         shutdown -r +15
-      elif [ "$CURRENT_PROFILE" != "$LATEST_PROFILE" ]; then
+      elif [ "$ACTIVE_PROFILE" != "$LATEST_PROFILE" ]; then
         echo 'Switching to latest system profile.'
         "$LATEST_PROFILE/bin/switch-to-configuration" switch
       else
