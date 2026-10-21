@@ -25,6 +25,7 @@ in
     gptfdisk
     gnupg
     iperf3
+    jq
     lsof
     pciutils
     nmap

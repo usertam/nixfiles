@@ -58,9 +58,14 @@
   environment.systemPackages = with pkgs; [
     bubblewrap # for claude-code sandbox
     claude-code
+    cloudsmith-cli
+    debsigs
     docker
     earthly
     gh
+    gnumake
+    reptyr
+    sshpass
     vagrant
   ];
 
