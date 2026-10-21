@@ -7,16 +7,20 @@ on:
         required: true
         type: boolean
         default: false
-      override-nixpkgs:
-        description: 'Override the nixpkgs input with specified branch'
+      override-inputs:
+        description: 'Override the inputs with specific pins'
         required: true
         type: boolean
         default: false
-      override-nixpkgs-branch:
-        description: 'Branch to override the nixpkgs input with, if enabled'
-        required: true
+      override-nixpkgs-input:
+        description: 'Revision to override the nixpkgs input with'
+        required: false
         type: string
         default: nixos-unstable-small
+      override-extra-inputs:
+        description: 'Arguments passed to nix flake update to override other inputs'
+        required: false
+        type: string
   schedule:
   - cron: '0 22 * * SUN'
 permissions:
@@ -27,8 +31,9 @@ jobs:
     name: Stage updates on staging branch
     runs-on: ubuntu-latest
     env:
-      # Empty unless the override is enabled, as on scheduled runs that carry no inputs.
-      NIXPKGS_BRANCH: ${{ inputs.override-nixpkgs && format('github:nixos/nixpkgs/{0}', inputs.override-nixpkgs-branch) || '' }}
+      # Empty unless overrides are enabled, as on scheduled runs that carry no inputs.
+      NIXPKGS_INPUT: ${{ inputs.override-inputs && inputs.override-nixpkgs-input && format('github:nixos/nixpkgs/{0}', inputs.override-nixpkgs-input) || '' }}
+      EXTRA_INPUTS: ${{ inputs.override-inputs && inputs.override-extra-inputs || '' }}
     steps:
     - uses: actions/create-github-app-token@v2
       id: staging-bot-token
@@ -65,9 +70,12 @@ jobs:
         fi
     - name: Update flake lock file
       run: |
+        # Split the extra arguments on whitespace, without glob expansion.
+        read -ra EXTRA_ARGS <<< "$EXTRA_INPUTS"
         git switch -c staging
         nix flake update --commit-lock-file \
-          ${NIXPKGS_BRANCH:+--override-input nixpkgs "$NIXPKGS_BRANCH"}
+          ${NIXPKGS_INPUT:+--override-input nixpkgs "$NIXPKGS_INPUT"} \
+          "${EXTRA_ARGS[@]}"
     - name: Update kernel definitions
       run: |
         set -o pipefail
