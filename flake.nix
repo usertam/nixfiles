@@ -5,7 +5,7 @@
     darwin.inputs.nixpkgs.follows = "nixpkgs";
     lanzaboote.url = "github:nix-community/lanzaboote";
     lanzaboote.inputs.nixpkgs.follows = "nixpkgs";
-    proxmox-nixos.url = "github:SaumonNet/proxmox-nixos/0308a80324e3f70a159e8c4fe272927cd62845c8";
+    proxmox-nixos.url = "github:SaumonNet/proxmox-nixos";
     niks3.url = "github:Mic92/niks3";
     niks3.inputs.nixpkgs.follows = "nixpkgs";
   };
