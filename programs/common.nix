@@ -1,46 +1,49 @@
 { lib, pkgs, system, ... }:
 
-let
-  btop' = pkgs.btop.overrideAttrs (prev: {
-    patches = (prev.patches or []) ++ [
-      (pkgs.fetchpatch {
-        name = "remove-terminal-size-limit.patch";
-        url = "https://github.com/usertam/btop/commit/4d9671f905881ade6c3a0e9a8118c663fc941e83.patch";
-        hash = "sha256-riq+nNllVCHapqTRPt8ict8UNg8o+Z0Ik2iaW6lHwmM=";
-      })
-      (pkgs.fetchpatch {
-        name = "change-default-theme-background-to-false.patch";
-        url = "https://github.com/usertam/btop/commit/e37aa387c6702cdf6ece63fadda65e61262f9f9b.patch";
-        hash = "sha256-9bpcwZXW/+Tz7tq5XjbDNrKQEkUG4hhb+CMsP+/Ny9E=";
-      })
-    ];
-  });
-in
-
 {
-  environment.systemPackages = with pkgs; [
-    bind # dig, nslookup
-    btop'
-    file
-    gptfdisk
-    gnupg
-    iperf3
-    jq
-    lsof
-    pciutils
-    nmap
-    socat
-    tcpdump
-    usbutils
-    wireguard-tools
-  ] ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-    conntrack-tools
-    ethtool
-    nftables
-    ghostty.terminfo
-  ] ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-    ghostty-bin.terminfo
-  ];
+  environment.systemPackages =
+    let
+      btop' = pkgs.btop.overrideAttrs (prev: {
+        patches = (prev.patches or [ ]) ++ [
+          (pkgs.fetchpatch {
+            name = "remove-terminal-size-limit.patch";
+            url = "https://github.com/usertam/btop/commit/4d9671f905881ade6c3a0e9a8118c663fc941e83.patch";
+            hash = "sha256-riq+nNllVCHapqTRPt8ict8UNg8o+Z0Ik2iaW6lHwmM=";
+          })
+        ];
+        postPatch = (prev.postPatch or "") + ''
+          substituteInPlace src/btop_config.cpp \
+            --replace-fail '{"theme_background", true},' '{"theme_background", false},' \
+            --replace-fail '{"proc_per_core", false},' '{"proc_per_core", true},'
+        '';
+      });
+    in
+    with pkgs;
+    [
+      bind # dig, nslookup
+      btop'
+      file
+      gptfdisk
+      gnupg
+      iperf3
+      jq
+      lsof
+      pciutils
+      nmap
+      socat
+      tcpdump
+      usbutils
+      wireguard-tools
+    ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+      conntrack-tools
+      ethtool
+      nftables
+      ghostty.terminfo
+    ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+      ghostty-bin.terminfo
+    ];
 
   programs = {
     tmux = {
