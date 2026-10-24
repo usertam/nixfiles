@@ -38,6 +38,25 @@
     '';
   };
 
+  # Enable ksmbd on tailscale; guests map to nobody, like NFS root_squash.
+  environment.systemPackages = [ pkgs.ksmbd-tools ];
+  systemd.packages = [ pkgs.ksmbd-tools ];
+  systemd.services.ksmbd = {
+    wantedBy = [ "multi-user.target" ];
+    restartTriggers = [ config.environment.etc."ksmbd/ksmbd.conf".source ];
+  };
+  environment.etc."ksmbd/ksmbd.conf".text = ''
+    [global]
+    bind interfaces only = yes
+    interfaces = tailscale0
+    map to guest = bad user
+
+    [tank]
+    path = /srv/tank
+    read only = no
+    guest ok = yes
+  '';
+
   # Enable qBittorrent, limit WebUI to tailscale.
   services.qbittorrent = {
     enable = true;
@@ -97,9 +116,9 @@
   users.groups.radarr.gid = lib.mkForce 819;
   users.users.radarr.isSystemUser = true;
 
-  # Open firewall on tailscale0 for NFS.
+  # Open firewall on tailscale0 for NFS and SMB.
   networking.firewall.interfaces."tailscale0" = {
-    allowedTCPPorts = [ 111 2049 7878 8080 20048 ];
+    allowedTCPPorts = [ 111 445 2049 7878 8080 20048 ];
     allowedUDPPorts = [ 111 2049 7878 8080 20048 ];
   };
 
