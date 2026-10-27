@@ -50,11 +50,11 @@
     bind interfaces only = yes
     interfaces = tailscale0
     map to guest = bad user
+    guest ok = yes
 
     [tank]
     path = /srv/tank
     read only = no
-    guest ok = yes
   '';
 
   # Enable qBittorrent, limit WebUI to tailscale.
