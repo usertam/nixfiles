@@ -55,19 +55,22 @@
     "vagrant"
   ];
 
-  environment.systemPackages = with pkgs; [
-    bubblewrap # for claude-code sandbox
-    claude-code
-    cloudsmith-cli
-    debsigs
-    docker
-    earthly
-    gh
-    gnumake
-    reptyr
-    sshpass
-    vagrant
-  ];
+  environment.systemPackages =
+    let
+      vagrant' = pkgs.vagrant.override { withLibvirt = false; };
+    in with pkgs; [
+      bubblewrap # for claude-code sandbox
+      claude-code
+      cloudsmith-cli
+      debsigs
+      docker
+      earthly
+      gh
+      gnumake
+      reptyr
+      sshpass
+      vagrant'
+    ];
 
   # Skip unattended reboots while claude sessions are running.
   # Switches still apply, and the reboot is retried next upgrade.

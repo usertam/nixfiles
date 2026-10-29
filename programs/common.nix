@@ -7,8 +7,8 @@
         patches = (prev.patches or [ ]) ++ [
           (pkgs.fetchpatch {
             name = "remove-terminal-size-limit.patch";
-            url = "https://github.com/usertam/btop/commit/4d9671f905881ade6c3a0e9a8118c663fc941e83.patch";
-            hash = "sha256-riq+nNllVCHapqTRPt8ict8UNg8o+Z0Ik2iaW6lHwmM=";
+            url = "https://github.com/usertam/btop/commit/85c1c7568ab08818526f85057919a04c2d6e5dd1.patch";
+            hash = "sha256-q6SjePiygFv/cYqzniOM5MZPkmMvAZ1B5aEW0wWSQos=";
           })
         ];
         postPatch = (prev.postPatch or "") + ''
