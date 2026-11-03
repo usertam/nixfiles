@@ -249,6 +249,10 @@
     in
     lib.mkDefault kernelPackages;
 
+  # The driver sata_inic162x was dropped on 7.4 out of unmaintained, known data-corruption bugs.
+  # Given that nothing should use it, override and disable it even on enableAllHardware.
+  boot.initrd.availableKernelModules.sata_inic162x = lib.mkForce false;
+
   # Don't implicitly import zroot even if it exists.
   boot.zfs.forceImportRoot = lib.mkDefault false;
 
