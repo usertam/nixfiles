@@ -23,6 +23,7 @@
       bind # dig, nslookup
       btop'
       file
+      gh
       gptfdisk
       gnupg
       iperf3
