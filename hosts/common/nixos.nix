@@ -227,6 +227,15 @@
           LIVEPATCH = yes;
           LTO_CLANG_THIN = yes;
           CFI = if kcfiCompat then yes else no;
+        } // lib.optionalAttrs (variant.kernelAtLeast "7.4") {
+          # 7.4 drops KVM_MMIO and renames GOOGLE_FIRMWARE to COREBOOT_FIRMWARE,
+          # both still set unconditionally by nixpkgs common-config.
+          KVM_MMIO = lib.mkForce unset;
+          GOOGLE_FIRMWARE = lib.mkForce unset;
+          COREBOOT_FIRMWARE = yes;
+          # 7.4 adds the DEBUG_INFO_BTF_INLINE tristate, which autoModules sets
+          # to m; resolve_btfids --inline then segfaults on module BTF.
+          DEBUG_INFO_BTF_INLINE = no;
         };
       });
 
