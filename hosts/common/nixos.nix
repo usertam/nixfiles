@@ -133,10 +133,21 @@
 
       zfsSupports = kernel: !(pkgs.linuxPackagesFor kernel).zfs_unstable.meta.broken;
 
+      # Newest nixpkgs kernel series ZFS supports, skipping removed-series aliases.
+      linux_zfs = lib.pipe pkgs.linuxKernel.kernels [
+        (lib.filterAttrs (n: k:
+          builtins.match "linux_[0-9]+_[0-9]+" n != null
+          && (builtins.tryEval k).success
+          && zfsSupports k))
+        lib.attrValues
+        (lib.sort (a: b: lib.versionOlder a.version b.version))
+        lib.last
+      ];
+
       variant =
-        # If ZFS is needed, prefer the latest stable when supported.
+        # If ZFS is needed, prefer the latest stable, else the newest series it supports.
         if config.boot.zfs.enabled then
-          if zfsSupports linux_stable then linux_stable else pkgs.linux
+          if zfsSupports linux_stable then linux_stable else linux_zfs
         # Mainline yields to stable once stable catches up to it.
         else if linux_stable.kernelAtLeast linux_mainline.baseVersion then
           linux_stable
