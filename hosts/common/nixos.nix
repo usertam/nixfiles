@@ -162,7 +162,14 @@
 
       # bindgen must link the same libclang as CC: kbuild probes flags such as
       # -fms-anonymous-structs against clang and hands them to bindgen too.
-      bindgen = pkgs.rust-bindgen-unwrapped.override { inherit (llvmPkgs) clang; };
+      # nixpkgs pins bindgen to rustc's LLVM, so repoint its libclang instead.
+      bindgen = pkgs.rust-bindgen-unwrapped.overrideAttrs (old: {
+        preConfigure = ''
+          export LIBCLANG_PATH="${lib.getLib llvmPkgs.clang.cc}/lib"
+        '';
+        nativeCheckInputs = [ llvmPkgs.clang ];
+        passthru = old.passthru // { inherit (llvmPkgs) clang; };
+      });
 
       # pahole must filter by language per DWARF CU before LTO CU merging.
       pahole-lang-filter-patch = pkgs.writeText "pahole-lang-filter.patch" ''
