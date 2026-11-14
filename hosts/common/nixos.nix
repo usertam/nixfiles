@@ -154,24 +154,7 @@
         else
           linux_mainline;
 
-      # Build a llvmStdenv out of clang, lld and LLVM binutils.
-      llvmPkgs = pkgs.llvmPackages_latest;
-      llvmStdenv = pkgs.overrideCC llvmPkgs.stdenv (
-        llvmPkgs.clang.override { inherit (llvmPkgs) bintools; }
-      );
-
-      # bindgen must link the same libclang as CC: kbuild probes flags such as
-      # -fms-anonymous-structs against clang and hands them to bindgen too.
-      # nixpkgs pins bindgen to rustc's LLVM, so repoint its libclang instead.
-      bindgen = pkgs.rust-bindgen-unwrapped.overrideAttrs (old: {
-        preConfigure = ''
-          export LIBCLANG_PATH="${lib.getLib llvmPkgs.clang.cc}/lib"
-        '';
-        nativeCheckInputs = [ llvmPkgs.clang ];
-        passthru = old.passthru // { inherit (llvmPkgs) clang; };
-      });
-
-      # pahole must filter by language per DWARF CU before LTO CU merging.
+      # buildLinux's pahole must filter by language per DWARF CU before LTO CU merging.
       pahole-lang-filter-patch = pkgs.writeText "pahole-lang-filter.patch" ''
         --- a/dwarf_loader.c
         +++ b/dwarf_loader.c
@@ -209,15 +192,22 @@
          	// Make 'pahole --header type < file' a shorter form of 'pahole -C type --count 1 < file'
       '';
 
-      # pahole must filter by language per DWARF CU before LTO CU merging.
-      pahole = pkgs.pahole.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ pahole-lang-filter-patch ];
-      });
+      # Build a stdenv out of latest LLVM clang, lld and binutils.
+      llvmPackages = pkgs.llvmPackages_latest;
+      stdenv = pkgs.overrideCC llvmPackages.stdenv (
+        llvmPackages.clang.override { inherit (llvmPackages) bintools; }
+      );
 
-      buildLinux = pkgs.buildLinux.override {
-        inherit pahole;
-        rust-bindgen-unwrapped = bindgen;
-        callPackage = pkgs.newScope { inherit pahole; rust-bindgen-unwrapped = bindgen; };
+      # buildLinux's bindgen must link the same libclang as CC: kbuild probes flags
+      # such as -fms-anonymous-structs against clang and hands them to bindgen too.
+      buildLinux = pkgs.buildLinux.override rec {
+        pahole = pkgs.pahole.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [ pahole-lang-filter-patch ];
+        });
+        rust-bindgen-unwrapped = pkgs.rust-bindgen-unwrapped.override {
+          rustc = pkgs.rustc // { inherit llvmPackages; };
+        };
+        callPackage = pkgs.newScope { inherit pahole rust-bindgen-unwrapped; };
       };
 
       # Context lines are space + tab, as in the tab-indented init/Kconfig.
@@ -236,8 +226,7 @@
         && !config.virtualisation.virtualbox.host.enable;
 
       kernel = variant.override (prev: {
-        inherit buildLinux;
-        stdenv = llvmStdenv;
+        inherit buildLinux stdenv;
         kernelPatches = (prev.kernelPatches or [ ]) ++ [
           { name = "rust-btf-lto"; patch = rust-btf-lto-patch; }
         ];
@@ -245,15 +234,6 @@
           LIVEPATCH = yes;
           LTO_CLANG_THIN = yes;
           CFI = if kcfiCompat then yes else no;
-        } // lib.optionalAttrs (variant.kernelAtLeast "7.4") {
-          # 7.4 drops KVM_MMIO and renames GOOGLE_FIRMWARE to COREBOOT_FIRMWARE,
-          # both still set unconditionally by nixpkgs common-config.
-          KVM_MMIO = lib.mkForce unset;
-          GOOGLE_FIRMWARE = lib.mkForce unset;
-          COREBOOT_FIRMWARE = yes;
-          # 7.4 adds the DEBUG_INFO_BTF_INLINE tristate, which autoModules sets
-          # to m; resolve_btfids --inline then segfaults on module BTF.
-          DEBUG_INFO_BTF_INLINE = no;
         };
       });
 
