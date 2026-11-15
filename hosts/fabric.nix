@@ -185,6 +185,10 @@
       chain forward {
         type filter hook forward priority filter; policy drop;
 
+        # Plain traffic that should never go out wan0.
+        # Above conntrack, so established flows are not exempt.
+        oifname "wan0" ip daddr 160.79.104.0/23 counter reject
+
         ct state invalid drop
         ct state established flow add @forward_offload
         ct state { established, related } accept
@@ -542,6 +546,12 @@
       OnUnitActiveSec = "5min";
     };
   };
+
+  # Reloading nftables flushes the whole ruleset, the rules above with it;
+  # reapply them right away instead of at the next timer tick.
+  systemd.services.nftables.serviceConfig.ExecReload = lib.mkAfter [
+    "${pkgs.systemd}/bin/systemctl restart --no-block vpn-policy-routing.service"
+  ];
 
   # Velvet will upgrade first, ensure velvet is ready before fabric upgrades.
   systemd.services.nixos-unattended-upgrade = lib.mkIf (config.networking.hostName == "fabric") {
