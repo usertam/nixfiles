@@ -195,6 +195,9 @@
         # tunnelled flows cannot be offloaded.
         iifname $LAN oifname "he-ipv6" accept
         iifname "lan0" oifname "vnet0" accept
+
+        # Port mappings installed by miniupnpd, the only DNAT applied on wan0.
+        iifname "wan0" ct status dnat accept
       }
 
       chain mangle_prerouting {
@@ -210,6 +213,13 @@
     }
 
     table ip nat {
+      chain dstnat {
+        type nat hook prerouting priority dstnat; policy accept;
+        # NAT-PMP clients ask their gateway, the VIP, but miniupnpd only binds
+        # the first address of an interface, the static one on vnet0.
+        iifname "vnet0" udp dport 5351 redirect
+      }
+
       chain srcnat {
         type nat hook postrouting priority srcnat; policy accept;
         oifname $WAN masquerade
@@ -368,8 +378,9 @@
         group { lan0 vnet0 }
         track_interface { lan0 wan0 }
         track_script { check_wan }
-        notify_master "${pkgs.systemd}/bin/systemctl restart kea-dhcp4-server"
-        notify_fault  "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server"
+        notify_master "${pkgs.systemd}/bin/systemctl restart kea-dhcp4-server miniupnpd"
+        notify_backup "${pkgs.systemd}/bin/systemctl stop miniupnpd"
+        notify_fault  "${pkgs.systemd}/bin/systemctl stop kea-dhcp4-server miniupnpd"
       }
     '';
   };
@@ -424,6 +435,28 @@
       };
     };
   };
+
+  # NAT-PMP and PCP. Any lan0 or vnet0 host may map unprivileged ports, but the
+  # firewall keeps port 5351 closed; clients are let in at runtime, e.g.
+  #   nft add rule inet filter input iifname lan0 ip saddr 192.168.1.50 udp dport 5351 accept
+  services.miniupnpd = {
+    enable = true;
+    natpmp = true;
+    upnp = false;
+    externalInterface = "wan0";
+    internalIPs = [ "lan0" "vnet0" ];
+    # IPv4 mappings only; no IPv6 pinholes.
+    appendConfig = ''
+      ipv6_disable=yes
+      allow 1024-65535 192.168.1.0/24 1024-65535
+      allow 1024-65535 172.16.0.0/20 1024-65535
+      deny 0-65535 0.0.0.0/0 0-65535
+    '';
+  };
+
+  # lan0 only has an address while this node holds the VIP, and miniupnpd
+  # reads it once at startup; keepalived starts it on becoming master.
+  systemd.services.miniupnpd.wantedBy = lib.mkForce [ ];
 
   # VPN policy routing. Resolve domains and re-route traffic.
   systemd.services.vpn-policy-routing =
