@@ -106,6 +106,27 @@
     settings.Resolve.FallbackDNS = [ "1.1.1.1" ];
   };
 
+  # Route this range out wlan0 instead of the eth* default. NetworkManager owns
+  # the link, so add the route each time it comes up; it goes away with the link.
+  networking.networkmanager.dispatcherScripts = lib.singleton {
+    source = pkgs.writeShellScript "route-wlan0" ''
+      if [ "$1" = wlan0 ] && [ "$2" = up ]; then
+        ${pkgs.iproute2}/bin/ip route replace 160.79.104.0/21 via 10.2.70.1 dev wlan0
+      fi
+    '';
+  };
+
+  # Plain traffic that should never go out anything but wlan0.
+  networking.nftables.tables.eth-reject = {
+    family = "ip";
+    content = ''
+      chain output {
+        type filter hook output priority filter; policy accept;
+        oifname != "wlan0" ip daddr 160.79.104.0/21 counter reject
+      }
+    '';
+  };
+
   # Enable X11 server and keymap.
   services.xserver = {
     enable = true;
