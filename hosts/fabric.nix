@@ -187,7 +187,7 @@
 
         # Plain traffic that should never go out wan0.
         # Above conntrack, so established flows are not exempt.
-        oifname "wan0" ip daddr 160.79.104.0/23 counter reject
+        oifname "wan0" ip daddr 160.79.104.0/21 counter reject
 
         ct state invalid drop
         ct state established flow add @forward_offload
