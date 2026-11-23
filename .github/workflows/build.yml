@@ -77,6 +77,8 @@ jobs:
     - uses: Mic92/niks3-action@main
       with:
         server-url: https://niks3.usertam.dev
+    - name: Allow unprivileged user namespaces
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'toplevel')
       run: |
