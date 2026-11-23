@@ -27,6 +27,11 @@
     };
   };
 
+  # Resolve the limine biosDevice conflict with qemu-vm in the vm variant.
+  virtualisation.vmVariant = { config, ... }: {
+    boot.loader.limine.biosDevice = lib.mkForce config.virtualisation.bootLoaderDevice;
+  };
+
   # Extend the image build to produce the extra zst image.
   system.build.release = config.system.build.amazonImage.overrideAttrs (prev: {
     postInstall = (prev.postInstall or "") + ''
