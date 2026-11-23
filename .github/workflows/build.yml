@@ -77,6 +77,8 @@ jobs:
     - uses: Mic92/niks3-action@main
       with:
         server-url: https://niks3.usertam.dev
+    - name: Allow unprivileged user namespaces
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
     - name: Build toplevel for ${{matrix.system}}.${{matrix.config}}
       if: contains(matrix.builds, 'toplevel')
       run: |
@@ -103,7 +105,7 @@ jobs:
     - name: Show logs of failed builds
       if: failure()
       run: |
-        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+        drvs=$(grep -E "(builder for|build of|Cannot build) '" nix-build.log \
           | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
         if [ -z "$drvs" ]; then
           echo "No failed derivation found, showing last 100 lines of output:"
@@ -145,7 +147,7 @@ jobs:
     - name: Show logs of failed builds
       if: failure()
       run: |
-        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+        drvs=$(grep -E "(builder for|build of|Cannot build) '" nix-build.log \
           | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
         if [ -z "$drvs" ]; then
           echo "No failed derivation found, showing last 100 lines of output:"
