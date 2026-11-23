@@ -105,7 +105,7 @@ jobs:
     - name: Show logs of failed builds
       if: failure()
       run: |
-        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+        drvs=$(grep -E "(builder for|build of|Cannot build) '" nix-build.log \
           | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
         if [ -z "$drvs" ]; then
           echo "No failed derivation found, showing last 100 lines of output:"
@@ -147,7 +147,7 @@ jobs:
     - name: Show logs of failed builds
       if: failure()
       run: |
-        drvs=$(grep -E "(builder for|build of) '" nix-build.log \
+        drvs=$(grep -E "(builder for|build of|Cannot build) '" nix-build.log \
           | grep -oE "/nix/store/[^ ']+\.drv" | sort -u || true)
         if [ -z "$drvs" ]; then
           echo "No failed derivation found, showing last 100 lines of output:"
