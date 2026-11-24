@@ -431,12 +431,12 @@
         prefetch-key = true;
       };
       remote-control.control-enable = true;
-      rpz = {
-        name = "rpz.hagezi-ultimate";
-        zonefile = "hagezi-ultimate.zone";
-        url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/rpz/ultimate.txt";
+      rpz = lib.forEach [ "ultimate" "tif-1" "tif-2" ] (list: {
+        name = "rpz.hagezi-${list}";
+        zonefile = "hagezi-${list}.zone";
+        url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/rpz/${list}.txt";
         rpz-action-override = "nxdomain";
-      };
+      });
     };
   };
 
