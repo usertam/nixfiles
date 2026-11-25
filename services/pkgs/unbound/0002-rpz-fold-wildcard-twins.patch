@@ -1,0 +1,224 @@
+diff -urN a/services/localzone.h b/services/localzone.h
+--- a/services/localzone.h	2026-11-24 18:43:42.336066521 +0000
++++ b/services/localzone.h	2026-11-24 18:43:42.337436560 +0000
+@@ -146,6 +146,10 @@
+ 	/** the class of this zone. 
+ 	 * uses 'dclass' to not conflict with c++ keyword class. */
+ 	uint16_t dclass;
++	/** for RPZ: set if this zone also stands in for the wildcard
++	 * "*.<name>" with the same action, so that no separate zone has to
++	 * be kept for the wildcard. Protected by the zone lock. */
++	uint8_t rpz_wildcard;
+ 
+ 	/** lock on the data in the structure
+ 	 * For the node, parent, name, namelen, namelabs, dclass, you
+diff -urN a/services/rpz.c b/services/rpz.c
+--- a/services/rpz.c	2026-11-24 18:43:42.336083493 +0000
++++ b/services/rpz.c	2026-11-24 18:43:42.337407393 +0000
+@@ -656,6 +656,99 @@
+ 	return newdnamelen + 1;	/* + 1 for root label */
+ }
+ 
++/**
++ * A wildcard trigger "*.<name>" that has the same action as the trigger for
++ * "<name>" is not stored as a zone of its own. It is folded into the zone
++ * for "<name>", by setting rpz_wildcard on it. Blocklists commonly list
++ * every domain twice like that. Only action-only zones (no local data)
++ * are folded. If a zone has rpz_wildcard set, there is no zone "*.<name>".
++ * The caller holds the lz lock for writing, and no zone locks.
++ * @return true if the wildcard is now covered by its parent zone (also if
++ *	it already was, the record is then a duplicate).
++ */
++static int
++rpz_fold_wildcard(struct local_zones* lz, uint8_t* dname, size_t dnamelen,
++	int dnamelabs, enum rpz_action a)
++{
++	struct local_zone* p;
++	int folded;
++	if(dnamelen <= 2 || !dname_is_wild(dname))
++		return 0;
++	p = local_zones_find(lz, dname+2, dnamelen-2, dnamelabs-1,
++		LDNS_RR_CLASS_IN);
++	if(!p)
++		return 0;
++	lock_rw_wrlock(&p->lock);
++	folded = p->rpz_wildcard;
++	if(!folded && a != RPZ_LOCAL_DATA_ACTION &&
++		p->type == rpz_action_to_localzone_type(a) &&
++		p->data.count == 0) {
++		p->rpz_wildcard = 1;
++		folded = 1;
++	}
++	lock_rw_unlock(&p->lock);
++	return folded;
++}
++
++/**
++ * The zone z was just created for an action-only trigger. If the wildcard
++ * for it was inserted earlier, as a zone of its own with the same action,
++ * fold that into z. The caller holds the lz lock for writing, and no zone
++ * locks.
++ */
++static void
++rpz_fold_existing_wildcard(struct local_zones* lz, struct local_zone* z)
++{
++	uint8_t wc[LDNS_MAX_DOMAINLEN+1];
++	struct local_zone* w;
++	int same;
++	if(z->namelen+2 > sizeof(wc) || dname_is_wild(z->name))
++		return;
++	wc[0] = 1; /* length of wildcard label */
++	wc[1] = (uint8_t)'*'; /* wildcard label */
++	memmove(wc+2, z->name, z->namelen);
++	w = local_zones_find(lz, wc, z->namelen+2, z->namelabs+1,
++		LDNS_RR_CLASS_IN);
++	if(!w)
++		return;
++	lock_rw_rdlock(&w->lock);
++	/* z is not visible to other threads yet, lz is write locked */
++	same = (w->type == z->type && w->data.count == 0);
++	lock_rw_unlock(&w->lock);
++	if(!same)
++		return;
++	local_zones_del_zone(lz, w);
++	lock_rw_wrlock(&z->lock);
++	z->rpz_wildcard = 1;
++	lock_rw_unlock(&z->lock);
++}
++
++/**
++ * The zone "<name>" is removed, but it had the wildcard folded into it and
++ * that stays. Give the wildcard a zone of its own. The caller holds the lz
++ * lock for writing, and no zone locks.
++ */
++static void
++rpz_unfold_wildcard(struct local_zones* lz, struct local_zone* z,
++	enum localzone_type tp)
++{
++	uint8_t* wc;
++	if(z->namelen+2 > LDNS_MAX_DOMAINLEN)
++		return;
++	wc = (uint8_t*)malloc(z->namelen+2);
++	if(!wc) {
++		log_err("malloc failure in rpz wildcard unfold");
++		return;
++	}
++	wc[0] = 1; /* length of wildcard label */
++	wc[1] = (uint8_t)'*'; /* wildcard label */
++	memmove(wc+2, z->name, z->namelen);
++	/* wc is owned by the new zone, or freed on failure */
++	if(!local_zones_add_zone(lz, wc, z->namelen+2, z->namelabs+1,
++		z->dclass, tp))
++		log_warn("rpz: create failed");
++}
++
+ static void
+ rpz_insert_local_zones_trigger(struct local_zones* lz, uint8_t* dname,
+ 	size_t dnamelen, enum rpz_action a, uint16_t rrtype, uint16_t rrclass,
+@@ -705,6 +798,12 @@
+ 		lock_rw_unlock(&lz->lock);
+ 		return;
+ 	}
++	if(z == NULL && rpz_fold_wildcard(lz, dname, dnamelen, dnamelabs, a)) {
++		/* covered by the zone of the parent name */
++		free(dname);
++		lock_rw_unlock(&lz->lock);
++		return;
++	}
+ 	if(z == NULL) {
+ 		tp = rpz_action_to_localzone_type(a);
+ 		z = local_zones_add_zone(lz, dname, dnamelen,
+@@ -716,6 +815,8 @@
+ 			return;
+ 		}
+ 		newzone = 1;
++		if(a != RPZ_LOCAL_DATA_ACTION)
++			rpz_fold_existing_wildcard(lz, z);
+ 	}
+ 	if(a == RPZ_LOCAL_DATA_ACTION) {
+ 		char* rrstr = sldns_wire2str_rr(rr, rr_len);
+@@ -1239,6 +1340,11 @@
+ 		}
+ 		return NULL;
+ 	}
++	if(ce_labs == z->namelabs && z->rpz_wildcard) {
++		/* the closest encloser is this zone, and the wildcard below
++		 * it is folded into it. */
++		return z;
++	}
+ 	wc[0] = 1; /* length of wildcard label */
+ 	wc[1] = (uint8_t)'*'; /* wildcard label */
+ 	memmove(wc+2, ce, ce_len);
+@@ -1254,6 +1360,24 @@
+ 	z = local_zones_find_le(zones, wc,
+ 		ce_len+2, ce_labs+1, qclass, &exact);
+ 	if(!z || !exact) {
++		/* no zone for the wildcard itself, it can be folded into
++		 * the zone for the closest encloser. */
++		z = local_zones_find_le(zones, wc+2, ce_len, ce_labs, qclass,
++			&exact);
++		if(z && exact) {
++			if(wr) {
++				lock_rw_wrlock(&z->lock);
++			} else {
++				lock_rw_rdlock(&z->lock);
++			}
++			if(z->rpz_wildcard) {
++				if(!zones_keep_lock) {
++					lock_rw_unlock(&zones->lock);
++				}
++				return z;
++			}
++			lock_rw_unlock(&z->lock);
++		}
+ 		lock_rw_unlock(&zones->lock);
+ 		return NULL;
+ 	}
+@@ -1378,11 +1502,30 @@
+ {
+ 	struct local_zone* z;
+ 	int delete_zone = 1;
++	int unfold = 0;
++	enum localzone_type tp;
+ 	z = rpz_find_zone(zones, dname, dnamelen, rr_class,
+ 		1 /* only exact */, 1 /* wr lock */, 1 /* keep lock*/);
+ 	if(!z) {
+ 		/* with only exact and keep lock, the zones lock is still
+ 		 * held here. */
++		if(a != RPZ_LOCAL_DATA_ACTION && dnamelen > 2 &&
++			dname_is_wild(dname)) {
++			/* the wildcard can be folded into its parent zone */
++			z = local_zones_find(zones, dname+2, dnamelen-2,
++				dname_count_labels(dname)-1,
++				LDNS_RR_CLASS_IN);
++			if(z) {
++				lock_rw_wrlock(&z->lock);
++				if(z->rpz_wildcard &&
++					a == localzone_type_to_rpz_action(
++					z->type))
++					z->rpz_wildcard = 0;
++				lock_rw_unlock(&z->lock);
++				lock_rw_unlock(&zones->lock);
++				return;
++			}
++		}
+ 		lock_rw_unlock(&zones->lock);
+ 		verbose(VERB_ALGO, "rpz: cannot remove RR from IXFR, "
+ 			"RPZ domain not found");
+@@ -1396,7 +1539,16 @@
+ 		lock_rw_unlock(&zones->lock);
+ 		return;
+ 	}
++	if(delete_zone && z->rpz_wildcard) {
++		/* the wildcard that is folded into this zone stays */
++		unfold = 1;
++		z->rpz_wildcard = 0;
++	}
++	tp = z->type;
+ 	lock_rw_unlock(&z->lock); 
++	if(unfold) {
++		rpz_unfold_wildcard(zones, z, tp);
++	}
+ 	if(delete_zone) {
+ 		local_zones_del_zone(zones, z);
+ 	}

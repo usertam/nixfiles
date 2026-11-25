@@ -392,6 +392,8 @@
   # DNS. Unbound resolver bound to the LAN-side VIPs (claimed by keepalived).
   services.unbound = {
     enable = true;
+    # Patched to hold the rpz blocklists in less memory.
+    package = pkgs.callPackage ../services/pkgs/unbound/package.nix { };
     settings = {
       server = {
         # respip module is required for rpz blocks to take effect.

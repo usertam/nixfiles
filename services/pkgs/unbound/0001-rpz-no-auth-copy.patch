@@ -1,0 +1,45 @@
+diff -urN a/services/authzone.c b/services/authzone.c
+--- a/services/authzone.c	2026-11-24 18:43:42.323906411 +0000
++++ b/services/authzone.c	2026-11-24 18:43:42.325207310 +0000
+@@ -1222,6 +1222,15 @@
+ 		if(duplicate) *duplicate=1; /* treat as bad insert */
+ 		return 1;
+ 	}
++	if(z->rpz && query_dname_compare(dname, z->name) != 0) {
++		/* RPZ policy records are only ever answered from the rpz
++		 * structures; do not keep a second copy in the auth zone
++		 * tree. The apex (SOA, NS) is still stored below, for the
++		 * serial and transfer bookkeeping. */
++		return rpz_insert_rr(z->rpz, z->name, z->namelen, dname,
++			dname_len, rr_type, rr_class, rr_ttl, rdata, rdatalen,
++			rr, rr_len);
++	}
+ 	if(!(node=az_domain_find_or_create(z, dname, dname_len))) {
+ 		log_err("cannot create domain");
+ 		return 0;
+@@ -1338,6 +1347,12 @@
+ 		 * zone transfer */
+ 		return 0;
+ 	}
++	if(z->rpz && query_dname_compare(dname, z->name) != 0) {
++		/* not stored in the auth zone tree, see az_insert_rr */
++		rpz_remove_rr(z->rpz, z->name, z->namelen, dname, dname_len,
++			rr_type, rr_class, rdata, rdatalen);
++		return 1;
++	}
+ 	node = az_find_name(z, dname, dname_len);
+ 	if(!node) {
+ 		/* node with that name does not exist */
+diff -urN a/services/rpz.c b/services/rpz.c
+--- a/services/rpz.c	2026-11-24 18:43:42.323998647 +0000
++++ b/services/rpz.c	2026-11-24 18:43:42.325312059 +0000
+@@ -1381,6 +1381,9 @@
+ 	z = rpz_find_zone(zones, dname, dnamelen, rr_class,
+ 		1 /* only exact */, 1 /* wr lock */, 1 /* keep lock*/);
+ 	if(!z) {
++		/* with only exact and keep lock, the zones lock is still
++		 * held here. */
++		lock_rw_unlock(&zones->lock);
+ 		verbose(VERB_ALGO, "rpz: cannot remove RR from IXFR, "
+ 			"RPZ domain not found");
+ 		return;
