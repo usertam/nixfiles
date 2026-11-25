@@ -7,7 +7,6 @@
     ../services/monitoring.nix
     ../services/incus.nix
     ../services/niks3.nix
-    ../services/opndrive.nix
   ];
 
   # Host identity.
@@ -67,7 +66,7 @@
     ];
   };
 
-  # Web services behind nginx, niks3 and opndrive.
+  # Web services behind nginx, namely niks3.
   security.acme = {
     acceptTerms = true;
     defaults.email = "infra@usertam.dev";
